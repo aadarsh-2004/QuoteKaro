@@ -3,7 +3,6 @@
     {
       "source": "/(.*)",
       "destination": "https://www.quotekaro.in/$1",
-      "statusCode": 308,
       "permanent" : true, 
       "has": [
         {
