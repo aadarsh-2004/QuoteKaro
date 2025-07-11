@@ -124,7 +124,7 @@ export default function LandingPage() {
         {/* Open Graph Tags for Social Sharing - specific to Landing Page */}
         <meta property="og:title" content="QuoteKaro — Professional Photography Estimates Made Easy" />
         <meta property="og:description" content="Generate quick, elegant, and client-ready estimates in seconds with QuoteKaro — perfect for all photographers, studios, and creatives in India. Boost your conversions today!" />
-        <meta property="og:image" content="/logo.png" /> {/* IMPORTANT: Replace with your actual compelling landing page image URL */}
+        <meta property="og:image" content="/fullogo.png"/> {/* IMPORTANT: Replace with your actual compelling landing page image URL */}
         <meta property="og:url" content="https://quotekaro.in" /> {/* IMPORTANT: Replace with your actual domain */}
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_IN" />
@@ -133,7 +133,7 @@ export default function LandingPage() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="QuoteKaro — Instant Photography Estimate Generator" />
         <meta name="twitter:description" content="Beautiful and fast quote generation tool for your studio. Impress clients. Close deals faster. Made for Indian photographers." />
-        <meta name="twitter:image" content="/logo.png"/> {/* IMPORTANT: Replace with your actual compelling landing page image URL */}
+        <meta name="twitter:image" content="/fullogo.png"/> {/* IMPORTANT: Replace with your actual compelling landing page image URL */}
         <meta name="twitter:site" content="https://x.com/QuoteKaro" /> {/* OPTIONAL: Replace with your actual Twitter handle, e.g., @QuoteKaroApp */}
 
         {/* Schema Markup for SaaSProduct (JSON-LD) - Helps search engines understand your product */}

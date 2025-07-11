@@ -122,7 +122,7 @@ const FeaturesPage = () => {
         {/* Open Graph Tags for Social Sharing */}
         <meta property="og:title" content="QuoteKaro Features: Streamline Your Photography Business" />
         <meta property="og:description" content="Discover how QuoteKaro's innovative features like instant estimates, flexible credits, and event tracking empower photographers and studios to win more clients." />
-        <meta property="og:image" content="https://quotekaro.in/og-image-features.jpg" /> {/* Replace with a suitable features page image */}
+        <meta property="og:image" content="/fullogo.png" /> {/* Replace with a suitable features page image */}
         <meta property="og:url" content="https://quotekaro.in/features" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_IN" />
@@ -147,7 +147,7 @@ const FeaturesPage = () => {
                 "@type": "Brand",
                 "name": "QuoteKaro"
               },
-              "image": "https://quotekaro.in/quotekaro-product-image.jpg", // Use a general product image
+              "image": "/fullogo.png", // Use a general product image
               "featureList": [
                 "Theme-Based Quotation Templates",
                 "Smart Credit System",

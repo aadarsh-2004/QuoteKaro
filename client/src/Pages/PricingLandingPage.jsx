@@ -109,7 +109,7 @@ const PricingLandingPage = () => {
         {/* Open Graph Tags for Social Sharing - specific to Pricing Page */}
         <meta property="og:title" content="QuoteKaro Pricing: Flexible Plans for Your Photography Business" />
         <meta property="og:description" content="Explore QuoteKaro's transparent pricing for photographers and studios. Choose subscription plans or one-time credit packs to get instant, professional estimates." />
-        <meta property="og:image" content="/logo.png" /> {/* IMPORTANT: Create a specific image for your pricing page and update this URL */}
+        <meta property="og:image" content="/fullogo.png" /> {/* IMPORTANT: Create a specific image for your pricing page and update this URL */}
         <meta property="og:url" content="https://quotekaro.in/pricing" /> {/* IMPORTANT: Ensure this matches your actual pricing page URL */}
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_IN" />
@@ -118,7 +118,7 @@ const PricingLandingPage = () => {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="QuoteKaro Pricing Plans: Get Started for Free" />
         <meta name="twitter:description" content="Discover QuoteKaro's flexible pricing for photographers. Monthly, yearly, or one-time credits – find the perfect fit for your studio or freelance work." />
-        <meta name="twitter:image" content="/logo.png" /> {/* IMPORTANT: Create a specific image for your pricing page and update this URL */}
+        <meta name="twitter:image" content="/fullogo.png" /> {/* IMPORTANT: Create a specific image for your pricing page and update this URL */}
         <meta name="twitter:site" content="https://x.com/QuoteKaro" /> {/* OPTIONAL: Your Twitter handle */}
 
         {/* Schema Markup for FAQPage (JSON-LD) */}

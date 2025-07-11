@@ -281,7 +281,7 @@ export default function BlogPage() {
         {/* Open Graph Tags for Social Sharing */}
         <meta property="og:title" content="QuoteKaro Blog: Empowering Photographers with Knowledge" />
         <meta property="og:description" content="Find valuable articles and resources on improving your photography business, from efficient quoting to client management." />
-        <meta property="og:image" content="/logo.png" /> {/* Replace with a suitable blog page image */}
+        <meta property="og:image" content="/fullogo.png" /> {/* Replace with a suitable blog page image */}
         <meta property="og:url" content="https://quotekaro.in/blog" />
         <meta property="og:type" content="blog" />
         <meta property="og:locale" content="en_IN" />
@@ -290,7 +290,7 @@ export default function BlogPage() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="QuoteKaro Blog: Your Guide to Photography Business Success" />
         <meta name="twitter:description" content="Dive into articles on photography estimates, client winning strategies, and essential tools for studios and freelancers." />
-        <meta name="twitter:image" content="/logo.png" /> {/* Replace with a suitable blog page image */}
+        <meta name="twitter:image" content="/fullogo.png" /> {/* Replace with a suitable blog page image */}
         <meta name="twitter:site" content="https://x.com/QuoteKaro" /> {/* OPTIONAL: Your Twitter handle */}
 
         {/* Schema Markup for Blog (JSON-LD) */}
