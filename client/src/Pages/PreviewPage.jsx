@@ -5,10 +5,11 @@ import { useEstimates } from "../context/EstimateContext"; // If you need all es
 import axios from "axios";
 
 import ThemeModern from "../Components/EstimateThemes/ThemeModern.jsx";
-import ThemeElegant from "../Components/EstimateThemes/ThemeElegant";
-import ThemeMinimal from "../components/EstimateThemes/ThemeMinimal";
-import ThemeSimple from "../Components/EstimateThemes/ThemeSimple";
-import ThemeVintage from "../components/EstimateThemes/ThemeVintage";
+
+import ThemeElegant from "../Components/EstimateThemes/ThemeElegant.jsx";
+import ThemeSimple from "../Components/EstimateThemes/ThemeSimple.jsx";
+import ThemeMinimal from "../Components/EstimateThemes/ThemeMinimal.jsx";
+import ThemeVintage from "../Components/EstimateThemes/ThemeVintage";
 
 const PreviewEstimate = () => {
   const { id } = useParams();
