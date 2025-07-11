@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, Users, CreditCard, BarChart3, DollarSign,
-  Mail, Database, Settings, Headphones, Bot, Menu, X,
+  Mail, Database, Settings, Headphones, Bot, Menu, X, Image as ImageIcon, // Import Image icon for templates
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -14,6 +14,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
     { id: 'users', label: 'User Management', icon: Users, path: '/usermanagement' },
     { id: 'plans', label: 'Plans & Credits', icon: CreditCard, path: '/plancreditmanagement' },
+    { id: 'templates', label: 'Templates', icon: ImageIcon, path: '/templates' }, // New Templates link
     { id: 'analytics', label: 'Estimate Analytics', icon: BarChart3, path: '/estimateanalytics' },
     { id: 'payments', label: 'Payments', icon: DollarSign, path: '/paymentstransactions' },
     { id: 'notifications', label: 'Email & Notifications', icon: Mail, path: '/emailnotificationsystem' },

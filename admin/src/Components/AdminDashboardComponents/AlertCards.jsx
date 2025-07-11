@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle,TrendingUp, Calendar, UserCheck } from 'lucide-react';
+import { AlertTriangle,TrendingUp, Calendar, UserCheck ,TrendingDown } from 'lucide-react';
 
 const AlertCards = ({ lowCreditUsers, expiredPlans, newSignups }) => {
   return (

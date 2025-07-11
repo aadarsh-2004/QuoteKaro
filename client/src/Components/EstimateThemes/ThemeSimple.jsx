@@ -1,6 +1,6 @@
 import { Phone } from "lucide-react"
 
-const ThemeModern = ({ estimate, studio }) => {
+const ThemeSimple = ({ estimate, studio }) => {
   // --- Data Initialization and Fallbacks ---
   const data = estimate || {}
   const studioData = studio || {}
@@ -95,7 +95,7 @@ const ThemeModern = ({ estimate, studio }) => {
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
               <span className="text-purple-600 text-sm font-bold">📷</span>
             </div>
-            <div className="text-sm font-medium">{estimateData.studioName}</div>
+            <div className="text-sm font-medium">{studioData.studioName}</div>
           </div>
         </div>
 
@@ -111,9 +111,9 @@ const ThemeModern = ({ estimate, studio }) => {
         <div className="absolute top-6 right-6 text-right text-sm">
           <div className="font-semibold mb-2">Studio Information:</div>
           <div className="space-y-1 opacity-90">
-            <div>{estimateData.studioName} Studio</div>
-            <div>{estimateData.studioEmail}</div>
-            <div>{estimateData.studioPhone}</div>
+            <div>{studioData.studioName} Studio</div>
+            <div>{studioData.studioEmail}</div>
+            <div>{studioData.studioPhone}</div>
             <div className="mt-2">License Number: {estimateData.licenseNumber}</div>
           </div>
         </div>
@@ -214,4 +214,4 @@ const ThemeModern = ({ estimate, studio }) => {
   )
 }
 
-export default ThemeModern
+export default ThemeSimple

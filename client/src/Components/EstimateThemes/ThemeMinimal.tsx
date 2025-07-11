@@ -1,212 +1,199 @@
-import React from "react"
-
-interface Service {
-  serviceName: string
-  description?: string
-  total: number
-  included?: boolean
-  rate?: number
-}
-
-interface EstimateProps {
-  estimate?: {
-    _id: string
-    clientName: string
-    functionName: string
-    location: string
-    startDate: Date
-    services: Service[]
-    subtotal: number
-    discount: number
-    tax?: {
-      percentage: number
-      amount: number
-    }
-    netTotal: number
-    notes?: string
-    phoneNumber?: string
-    terms?: string[]
-  }
-  studio?: {
-    name: string
-    logo?: string
-  }
-}
-
-const ThemeMinimal: React.FC<EstimateProps> = ({ estimate, studio }) => {
-  // Default values for common fields if they are missing
+import React from "react";
+const ThemeMinimal = ({ estimate, studio }) => {
+  
+    const StudioData = studio;
+    console.log(StudioData);
+     
   const defaultEstimate = {
-    _id: "ES-22108",
-    clientName: "Priva Sharma",
-    functionName: "Wedding Shoot",
-    location: "456 Client Lane Suite 200, Chennai, TN 600028",
-    phoneNumber: "+91 98765 43210",
-    startDate: new Date("2024-05-10"),
+    _id: "ES-0269", // Matches the original image
+    clientName: "Emily Hana", // Matches the original image
+    functionName: "Wedding Photography Estimate", // The main title
+    location: "456 Client Street, Client town, ST 67890", // Matches original image
+    phoneNumber: "(987) 654-3210", // Matches original image
+    startDate: new Date("2029-01-30"), // Matches original image
     services: [
       {
-        serviceName: "Wedding Photography Package",
-        description: "8 hours of coverage",
-        total: 60000,
+        serviceName: "Basic Package",
+        description: "4 hours of coverage, 200 edited photos",
+        total: 1000,
       },
       {
-        serviceName: "Engagement Session",
-        total: 10000,
+        serviceName: "Standard Package",
+        description: "6 hours of coverage, 300 edited photos, 1 album",
+        total: 1500,
+      },
+      {
+        serviceName: "Premium Package",
+        description: "8 hours of coverage, 400 edited photos, 2 albums",
+        total: 2000,
+      },
+      {
+        serviceName: "Deluxe Package",
+        description: "Full-day coverage, 500 edited photos, 3 albums",
+        total: 2500,
       },
     ],
-    subtotal: 70000,
-    discount: 5000,
-    tax: {
-      percentage: 18,
-      amount: 11700,
-    },
-    netTotal: 76700,
-    notes: "Please review the estimate and contact us if you have any questions or need further adjustments.",
+    subtotal: 7000, // Sum of default services
+    discount: 0, // No discount shown in the original image
+    tax: undefined, // No tax shown in the original image
+    netTotal: 7000, // Matches subtotal in original image
+    notes: "A deposit of $500 is required to secure the booking.", // Simplified to match main note
     terms: [
-      "50% advance payment required to confirm the booking",
-      "Balance payment due 1 week before the event",
-      "Rescheduling must be communicated at least 2 weeks in advance",
-      "All raw files and copyrights remain with the studio",
-      "Delivery timeline: 4-6 weeks after the event"
-    ]
-  }
+      "Cancellation policy: Deposit is non-refundable if cancelled less than 60 days before the event.",
+    ], // Simplified to match main term
+  };
 
   // Merge provided data with defaults
-  const estimateData = { ...defaultEstimate, ...estimate }
-  const studioData = { name: "QuoteStudio", ...studio }
+  const estimateData = { ...defaultEstimate, ...estimate };
+  const studioData = {
+    name: "Perfect Moment", // Matches the original image
+    logo: "svg-placeholder", // Indicating we'll use the SVG placeholder
+    contactPhone: "(123) 456-7890", // From original image
+    contactEmail: "info@perfectmoment.com", // From original image
+    contactAddress: "123 Photography Lane, Amityville, ST 12345", // From original image
+    ...studio
+  };
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("en-IN", {
+  const formatCurrency = (amount) => {
+    // Assuming INR as per your previous context, but the image uses '$'.
+    // Sticking to '$' for visual consistency with the image.
+    return new Intl.NumberFormat("en-US", { // Changed to en-US for '$' symbol
       style: "currency",
-      currency: "INR",
+      currency: "USD", // Changed to USD for '$' symbol
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
-  const formatDate = (date: Date): string => {
+  const formatDate = (date) => {
     return new Date(date).toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
       year: "numeric",
-    })
-  }
+    });
+  };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white p-12 font-sans text-gray-900">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-12">
-        <div className="text-3xl font-bold text-black">{studioData.name}</div>
-        <div className="text-4xl font-bold text-[#8B5CF6] tracking-wider">ESTIMATE</div>
-      </div>
+    // The main container adapted from ThemeMinimal's structure
+    <div className="max-w-4xl mx-auto font-sans text-gray-900 print-a4-document-wrapper">
+      {/* We'll use a flex container for the left image panel and right content panel */}
+      <div className="flex bg-white shadow-lg rounded-lg overflow-hidden md:shadow-none md:rounded-none">
 
-      {/* Bill To & Project Info */}
-      <div className="grid grid-cols-2 gap-16 mb-12">
-        <div>
-          <div className="text-gray-600 text-lg mb-3">Bill To</div>
-          <div className="text-xl font-semibold mb-2">{estimateData.clientName}</div>
-          <div className="text-gray-700 leading-relaxed">
-            {estimateData.location.split(",").map((part, index) => (
-              <div key={index}>{part.trim()}</div>
-            ))}
-            {estimateData.phoneNumber && (
-              <div className="mt-2 text-gray-600">{estimateData.phoneNumber}</div>
-            )}
-          </div>
-        </div>
+        {/* Left Section (Image and Contact Info) - adapted from original image design */}
+        <div className="relative w-1/3 bg-cover bg-center left-panel-print"
+             style={{ backgroundImage: `url('https://img.freepik.com/free-photo/medium-shot-married-couple-silhouettes_23-2149609659.jpg?semt=ais_items_boosted&w=740')` }}>
+          {/* Overlay for text readability */}
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
-        <div className="text-right">
-          <div className="mb-8">
-            <div className="text-2xl font-bold mb-4">{estimateData.functionName}</div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Issue date</span>
-                <span className="font-medium">{formatDate(estimateData.startDate)}</span>
+          <div className="relative z-10 flex flex-col h-full text-white p-8">
+            <div className="flex flex-col items-center mb-12">
+              {/* Logo/Studio Name */}
+              <div className="mb-2">
+                <img src={studioData.logoUrl} alt="" className="w-32 h-32 rounded-2xl" />
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Estimate</span>
-                <span className="font-medium">{estimateData._id}</span>
-              </div>
+              {/* <h2 className="text-xl font-semibold uppercase tracking-wider">{studio.studioName}</h2> */}
+            </div>
+
+            {/* Customer Information (from image's left panel) */}
+            <div className="mt-auto bg-black bg-opacity-50 p-6 rounded-md mb-4">
+              <h3 className="text-lg font-bold mb-3 uppercase">Customer Information</h3>
+              <p className="text-sm">{estimateData.clientName}</p>
+              {estimateData.phoneNumber && <p className="text-sm">{estimateData.phoneNumber}</p>}
+              {/* Assuming email is not in estimateData, but in image */}
+              
+              <p className="text-sm">
+                {estimateData.location.split(',').map((part, index) => (
+                  <span key={index}>{part.trim()}<br/></span>
+                ))}
+              </p>
+            </div>
+
+            {/* Contact Us (from image's left panel) */}
+            <div className="mt-auto bg-black bg-opacity-50 p-6 rounded-md">
+              <h3 className="text-lg font-bold mb-3 uppercase">Contact Us</h3>
+              {studioData.phone && <p className="text-sm">{studioData.phone}</p>}
+              {studioData?.phone2 && <p className="text-sm">{studioData?.phone2}</p>}
+              {studioData.email && <p className="text-sm">{studioData.email}</p>}
+              {studioData.address && <p className="text-sm">{studioData.address[0]}</p>}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Services Table */}
-      <div className="mb-12">
-        <div className="bg-gray-100 rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Description</th>
-                <th className="text-center py-4 px-6 font-semibold text-gray-700">Quantity</th>
-                <th className="text-right py-4 px-6 font-semibold text-gray-700">Price</th>
-                <th className="text-right py-4 px-6 font-semibold text-gray-700">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {estimateData.services.map((service, index) => (
-                <tr key={index} className="border-b border-gray-100 last:border-b-0">
-                  <td className="py-6 px-6">
-                    <div className="font-semibold text-lg">{service.serviceName}</div>
-                    {service.description && <div className="text-gray-600 mt-1">{service.description}</div>}
-                  </td>
-                  <td className="py-6 px-6 text-center font-medium">1</td>
-                  <td className="py-6 px-6 text-right font-medium">{formatCurrency(service.total)}</td>
-                  <td className="py-6 px-6 text-right font-semibold">{formatCurrency(service.total)}</td>
-                </tr>
-              ))}
+        {/* Right Section (Estimate Details) - adapted from ThemeMinimal's right panel */}
+        <div className="w-2/3 p-12 right-panel-print">
+          <h1 className="text-5xl font-extrabold text-gray-800 mb-6">{estimateData.functionName}</h1>
 
-              {/* Totals Row */}
-              <tr className="border-t-2 border-gray-300">
-                <td className="py-4 px-6 font-bold text-lg">Total</td>
-                <td className="py-4 px-6"></td>
-                <td className="py-4 px-6"></td>
-                <td className="py-4 px-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span className="font-semibold">{formatCurrency(estimateData.subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Discount</span>
-                      <span>−{formatCurrency(estimateData.discount)}</span>
-                    </div>
-                    
-                    <div className="flex justify-between pt-2 border-t border-gray-300 font-bold text-xl">
-                      <span>Total</span>
-                      <span>{formatCurrency(estimateData.netTotal)}</span>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Thank you for your interest in our wedding photography services. Here is a detailed estimate for capturing your special day.
+          </p>
+
+          <div className="mb-8">
+            <p className="text-gray-700 text-sm font-semibold">Estimate No.{estimateData._id.split('-')[1]}</p> {/* Extracting "0269" */}
+            <p className="text-gray-700 text-sm">{formatDate(estimateData.startDate)}</p>
+          </div>
+
+          {/* Services Table - adapted from ThemeMinimal's table style */}
+          <div className="mb-12">
+            <div className="bg-gray-100 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-800 text-white text-left"> {/* Changed header color to match original image */}
+                    <th className="py-3 px-4 text-sm font-semibold uppercase">Package</th> {/* Changed "Description" to "Package" */}
+                    <th className="py-3 px-4 text-sm font-semibold uppercase">Description</th>
+                    <th className="text-right py-3 px-4 font-semibold text-sm uppercase">Total</th> {/* Adjusted to match original image layout */}
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {estimateData.services.map((service, index) => (
+                    <tr key={index} className="border-b border-gray-100 last:border-b-0">
+                      <td className="py-3 px-4 font-semibold text-gray-700">{service.serviceName}</td>
+                      <td className="py-3 px-4 text-gray-700">{service.description}</td>
+                      <td className="py-3 px-4 text-right font-semibold text-gray-700">{formatCurrency(service.total)}</td>
+                    </tr>
+                  ))}
+
+                  {/* Totals Row - adapted from original image, simplified from ThemeMinimal's complex totals */}
+                  <tr className="border-t-2 border-gray-300">
+                    <td colSpan={2} className="py-3 px-4 text-right font-bold text-gray-800 bg-gray-200 uppercase text-sm">
+                      SUBTOTAL:
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-gray-800 bg-gray-200">
+                      {formatCurrency(estimateData.netTotal)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Additional Notes - From original image */}
+          {estimateData.notes && (
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Additional Notes:</h3>
+              <ul className="list-disc list-inside text-gray-600 space-y-2">
+                <li><span className="font-semibold">{estimateData.notes}</span></li>
+              </ul>
+            </div>
+          )}
+
+          {/* Terms and Conditions - From original image */}
+          {estimateData.terms && estimateData.terms.length > 0 && (
+            <div className="mb-8">
+              {/* No specific background/padding as in ThemeMinimal, matching the original image's style */}
+              <ul className="list-disc list-inside text-gray-600 space-y-2">
+                {estimateData.terms.map((term, index) => (
+                  <li key={index} className="text-gray-600 leading-relaxed">{term}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* "Thank you" message is not in the original image, so omitting it */}
+          {/* <div className="text-[#8B5CF6] font-semibold text-lg">Thank you for the opportunity!</div> */}
         </div>
       </div>
-
-      {/* Notes */}
-      {estimateData.notes && (
-        <div className="mb-8">
-          <div className="font-bold text-xl mb-3">Notes</div>
-          <div className="text-gray-700 leading-relaxed">{estimateData.notes}</div>
-        </div>
-      )}
-
-      {/* Terms and Conditions */}
-      {estimateData.terms && estimateData.terms.length > 0 && (
-        <div className="mb-8 bg-gray-50 rounded-lg p-6">
-          <div className="font-bold text-xl mb-4">Terms & Conditions</div>
-          <ul className="list-disc list-inside space-y-2">
-            {estimateData.terms.map((term, index) => (
-              <li key={index} className="text-gray-700 leading-relaxed">{term}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="text-[#8B5CF6] font-semibold text-lg">Thank you for the opportunity!</div>
     </div>
-  )
-}
+  );
+};
 
-export default ThemeMinimal
+export default ThemeMinimal;

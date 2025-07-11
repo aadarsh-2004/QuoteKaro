@@ -102,6 +102,7 @@ const Register = () => {
           name="description"
           content="Sign up for QuoteKaro and start creating instant, professional estimates for your photography business. Free registration for freelancers and studios."
         />
+        <link rel="canonical" href="https://www.quotekaro.in/register" />
         <meta
           name="keywords"
           content="QuoteKaro register, create account, free signup, photography estimate software, studio registration, freelance photographer signup, get started with QuoteKaro"

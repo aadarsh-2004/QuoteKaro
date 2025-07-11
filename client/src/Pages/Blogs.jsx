@@ -276,6 +276,8 @@ export default function BlogPage() {
           name="keywords"
           content="photography blog, studio tips, client proposals, estimate software, photography business growth, QuoteKaro insights, freelance photography guide, photography marketing, sales for photographers, SEO for photographers, client communication, studio automation"
         />
+        <link rel="canonical" href="https://www.quotekaro.in/blog" /> 
+        
         {/* Open Graph Tags for Social Sharing */}
         <meta property="og:title" content="QuoteKaro Blog: Empowering Photographers with Knowledge" />
         <meta property="og:description" content="Find valuable articles and resources on improving your photography business, from efficient quoting to client management." />

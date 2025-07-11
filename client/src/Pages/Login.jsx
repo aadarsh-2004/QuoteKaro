@@ -150,6 +150,8 @@ const Login = () => {
           name="keywords"
           content="QuoteKaro login, sign in, photography estimate software login, studio account access, freelance photographer login, client dashboard, professional quotes"
         />
+        <link rel="canonical" href="https://www.quotekaro.in/login" />
+        
         {/* Open Graph Tags for Social Sharing - specific to Login Page */}
         <meta property="og:title" content="Login to QuoteKaro: Access Your Estimate Dashboard" />
         <meta property="og:description" content="Existing QuoteKaro user? Sign in to your account to continue creating and managing your photography estimates with ease." />

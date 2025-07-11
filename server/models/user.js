@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
 
     // SaaS Related
     plan: { type: String, default: "Starter" },
+    
     total_estimates: { type: Number, default: 0 },
     total_clients: { type: Number, default: 0 },
 

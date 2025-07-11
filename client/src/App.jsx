@@ -26,6 +26,7 @@ import Preference from "./Pages/Preference";
 import { Helmet } from "react-helmet-async";
 import Blogs from "./Pages/Blogs";
 import FeaturesPage from "./Pages/FeaturesPage";
+
 function App() {
   useEffect(() => {
     saveUIDToLocalStorage();
@@ -65,6 +66,7 @@ function App() {
             }
           />
           <Route path="/register" element={<Register />} />
+         
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard" element={<Dashboard />} />

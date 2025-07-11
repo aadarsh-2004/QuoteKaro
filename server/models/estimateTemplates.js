@@ -14,7 +14,7 @@ const estimateTemplateSchema = new mongoose.Schema({
   },
   plan: { // Which plan is required to access this template
     type: String,
-    enum: ['Basic', 'Professional', 'Enterprise'], // Adjust based on your plan names
+    enum: ['Starter','Basic', 'Professional', 'Enterprise'], // Adjust based on your plan names
     required: true,
   },
   description: {

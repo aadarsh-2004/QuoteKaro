@@ -117,6 +117,8 @@ const FeaturesPage = () => {
           name="keywords"
           content="QuoteKaro features, photography estimate tools, client proposal software, online quoting system, photography business features, smart credit system, customizable pricing, PDF generation, studio branding, event tracking, client management"
         />
+        <link rel="canonical" href="https://www.quotekaro.in/features" />
+        
         {/* Open Graph Tags for Social Sharing */}
         <meta property="og:title" content="QuoteKaro Features: Streamline Your Photography Business" />
         <meta property="og:description" content="Discover how QuoteKaro's innovative features like instant estimates, flexible credits, and event tracking empower photographers and studios to win more clients." />

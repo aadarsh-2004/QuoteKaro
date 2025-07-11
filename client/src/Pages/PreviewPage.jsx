@@ -4,10 +4,10 @@ import { useUser } from "../context/UserContext";
 import { useEstimates } from "../context/EstimateContext"; // If you need all estimates elsewhere, keep this.
 import axios from "axios";
 
-import ThemeModern from "../components/EstimateThemes/ThemeModern";
-import ThemeElegant from "../components/EstimateThemes/ThemeElegant";
+import ThemeModern from "../Components/EstimateThemes/ThemeModern.jsx";
+import ThemeElegant from "../Components/EstimateThemes/ThemeElegant";
 import ThemeMinimal from "../components/EstimateThemes/ThemeMinimal";
-import ThemeSimple from "../components/EstimateThemes/ThemeSimple";
+import ThemeSimple from "../Components/EstimateThemes/ThemeSimple";
 import ThemeVintage from "../components/EstimateThemes/ThemeVintage";
 
 const PreviewEstimate = () => {
@@ -49,9 +49,11 @@ const PreviewEstimate = () => {
   const renderTheme = () => {
     // Pass the specific 'estimate' object from state, and 'userData' for studio details
     switch (selectedTheme) {
-      // case "elegant": return <ThemeElegant estimate={estimate} studio={userData} />;
-      // case "modern": return <ThemeModern estimate={estimate} studio={userData} />;
-      default: return <ThemeVintage estimate={estimate} studio={userData} />;
+       case "Modern": return <ThemeModern estimate={estimate} studio={userData} />;
+       case "Minimal": return <ThemeMinimal estimate={estimate} studio={userData} />;
+       case "Elegant": return <ThemeElegant estimate={estimate} studio={userData} />;
+       case "Vintage": return <ThemeVintage estimate={estimate} studio={userData} />;
+      default: return <ThemeSimple estimate={estimate} studio={userData} />;
     }
   };
 

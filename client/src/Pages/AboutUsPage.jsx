@@ -27,6 +27,7 @@ const AboutUsPage = () => {
           name="keywords"
           content="About QuoteKaro, QuoteKaro mission, photography SaaS, estimate software company, India tech startup, creative professionals software, online quoting tool, QuoteKaro team, contact QuoteKaro"
         />
+        <link rel="canonical" href="https://www.quotekaro.in/about-us" />
         {/* Open Graph Tags for Social Sharing - specific to About Us Page */}
         <meta property="og:title" content="About QuoteKaro: Simplifying Estimates for Creatives" />
         <meta property="og:description" content="Discover QuoteKaro's journey to build the easiest and most powerful estimate generation platform for photographers and studios worldwide. Meet our team." />

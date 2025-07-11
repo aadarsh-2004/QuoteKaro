@@ -101,6 +101,7 @@ const PricingLandingPage = () => {
           name="description"
           content="Find the perfect QuoteKaro pricing plan for your photography business. Choose from flexible monthly/yearly subscriptions or one-time credit packs to generate professional estimates."
         />
+        <link rel="canonical" href="https://www.quotekaro.in/pricing" /> 
         <meta
           name="keywords"
           content="QuoteKaro pricing, photography estimate software cost, quote generator plans, freelance photographer pricing tool, studio estimate software price, credit system for photographers, subscription plans for photography, India photography app pricing"
