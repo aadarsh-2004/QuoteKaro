@@ -178,7 +178,7 @@ export default function LandingPage() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 opacity-50">
         {particles}
         <div
-          className="absolute w-96 h-96 bg-gradient-to-r from-purple-200/30 to-pink-200/30 rounded-full blur-3xl"
+          className="absolute w-96 h-96 bg-gradient-to-r from-purple-400/50 to-pink-300/50 rounded-full blur-3xl"
           style={{
             left: mousePosition.x - 192,
             top: mousePosition.y - 192,
@@ -193,10 +193,11 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-20">
               <div className="flex items-center space-x-2">
-                <FileSignature className="w-8 h-8 text-purple-600" />
+                <img src="/bgremovelogo.png" alt="logo" className='w-48 h-48' />
+                {/* <FileSignature className="w-8 h-8 text-purple-600" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   QuoteKaro
-                </span>
+                </span> */}
               </div>
 
               <div className="hidden md:flex items-center space-x-8 text-slate-700 font-medium">

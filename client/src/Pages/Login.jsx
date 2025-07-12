@@ -191,14 +191,15 @@ const Login = () => {
       <div className="relative z-10 w-full max-w-md">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-lg mb-4 transform rotate-12 hover:rotate-0 transition-transform duration-300">
-            <FileSignature className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-transparent rounded-2xl shadow-lg mb-4 transform rotate-12 hover:rotate-0 transition-transform duration-300">
+            {/* <img className="w-8 h-8 text-white" /> */}
+            <img className="w-16 h-16 text-white " src="/logo.png" alt="logo" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent mb-2">
             QuoteKaro
           </h1>
-          <p className="text-gray-500 text-sm">
-            <span className="font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent ">
+          <p className="text-gray-500">
+            <span className="font-bold text-md bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent ">
               Sign in{" "}
             </span>
             to continue your creative journey
