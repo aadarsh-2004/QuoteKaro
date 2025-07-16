@@ -48,8 +48,12 @@ function MiniCalender() {
               ></div>
               <div className="flex-1">
                 <div className="text-sm font-medium text-gray-800">
+                  {est.clientName || "Untitled Function"}
+                </div>
+                <div className="text-sm font-medium text-gray-800">
                   {est.functionName || "Untitled Function"}
                 </div>
+
                 <div className="text-xs text-gray-500">
                   {formatDate(est.startDate)}
                 </div>

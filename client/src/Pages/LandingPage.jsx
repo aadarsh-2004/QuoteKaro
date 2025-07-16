@@ -18,6 +18,7 @@ import {
 import Footer from './Footer'; // Assuming you have a light-themed Footer component
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async'; // <--- ADD THIS LINE FOR SEO MANAGEMENT
+import LandingNavbar from '../Components/LandingNavbar';
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -189,61 +190,10 @@ export default function LandingPage() {
 
       <div className="relative z-10">
         {/* Navigation */}
-        <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-20">
-              <div className="flex items-center space-x-2">
-                <img src="/bgremovelogo.png" alt="logo" className='w-48 h-48' />
-                {/* <FileSignature className="w-8 h-8 text-purple-600" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  QuoteKaro
-                </span> */}
-              </div>
-
-              <div className="hidden md:flex items-center space-x-8 text-slate-700 font-medium">
-                {/* Changed to Link for React Router handling */}
-                <Link to="/features" className="hover:text-purple-600 transition-colors duration-300">Features</Link> 
-                <Link to="/about-us" className="hover:text-purple-600 transition-colors duration-300">About Us</Link>
-                <Link to="/pricing" className="hover:text-purple-600 transition-colors duration-300">Pricing</Link>
-                <Link to="/blog" className="hover:text-purple-600 transition-colors duration-300">Blog</Link> {/* Assuming a blog route */}
-                {/* <a href="#contact" className="hover:text-purple-600 transition-colors duration-300">Contact</a> */}
-              </div>
-              
-              <div className="hidden md:flex items-center space-x-4">
-                <Link to="/register" className="text-slate-700 font-medium hover:text-purple-600 transition-colors">Sign Up</Link>
-                <Link to="/login" className="group relative bg-slate-900 text-white px-5 py-2.5 rounded-full hover:shadow-lg hover:shadow-purple-200 transform hover:scale-105 transition-all duration-300 flex items-center gap-2 font-semibold">
-                  <span>Login</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
-                </Link>
-              </div>
-
-              <div className="md:hidden">
-                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-800">
-                  {isMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {isMenuOpen && (
-            <div className="md:hidden bg-white border-t border-gray-200">
-              <div className="px-4 py-4 space-y-3 text-slate-700">
-                <Link to="/features" onClick={() => setIsMenuOpen(false)} className="block py-2">Features</Link>
-                <Link to="/about-us" onClick={() => setIsMenuOpen(false)} className="block py-2">About Us</Link>
-                <Link to="/pricing" onClick={() => setIsMenuOpen(false)} className="block py-2">Pricing</Link>
-                <Link to="/blog" onClick={() => setIsMenuOpen(false)} className="block py-2">Blog</Link> {/* Assuming a blog route */}
-                {/* <a href="#contact" className="block py-2">Contact</a> */}
-                <Link to="/register" onClick={() => setIsMenuOpen(false)} className="w-full bg-slate-900 text-white px-6 py-3 rounded-full mt-2 text-center block">
-                  Create Your First Quote
-                </Link>
-                <Link to="/login" onClick={() => setIsMenuOpen(false)} className="w-full text-center py-2 block">Login</Link>
-              </div>
-            </div>
-          )}
-        </nav>
-
+        
+          <LandingNavbar/>
         {/* Hero Section */}
-        <section className="py-24 sm:py-32 px-4 sm:px-6 lg:px-8">
+        <section className="py-24 sm:py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto text-center">
              <div className="inline-flex items-center gap-2 bg-purple-100/70 border border-purple-200/80 rounded-full px-4 py-2 mb-8">
                <Zap className="w-5 h-5 text-purple-600" />
@@ -273,7 +223,7 @@ export default function LandingPage() {
                 to="/pricing"
                 className="group relative w-full sm:w-auto text-purple-700 border-2 border-purple-700 px-8 py-4 rounded-full text-lg font-semibold hover:bg-purple-50 hover:shadow-xl hover:shadow-purple-100 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
               >
-                <span>See Pricing Plans</span>
+                <span>Watch Demo</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>

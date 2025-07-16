@@ -27,7 +27,7 @@ const NewEstimateMainn = () => {
     functionName: "",
     phoneNumber: "",
     location: "",
-    description: "",
+    description: "", // Main estimate description
     startDate: "",
     endDate: "",
     notes: "",
@@ -44,7 +44,15 @@ const NewEstimateMainn = () => {
   }, [userData]);
 
   const [services, setServices] = useState([
-    { id: 1, serviceName: "", quantity: 1, pricePerUnit: 0, total: 0, isCustomInput: false },
+    {
+      id: 1,
+      serviceName: "",
+      description: "", // Initialized here
+      quantity: 1,
+      pricePerUnit: 0,
+      total: 0,
+      isCustomInput: false,
+    },
   ]);
 
   const [totals, setTotals] = useState({
@@ -56,15 +64,20 @@ const NewEstimateMainn = () => {
 
   // Use user's custom services for options
   const userServicesOptions = useMemo(() => {
-    const services = userData?.services?.map((s) => ({
-      name: s.name,
-      price: s.price,
-    })) || [];
+    const services =
+      userData?.services?.map((s) => ({
+        name: s.name,
+        price: s.price,
+        description: s.description, // Ensure description is pulled from user's services if available
+      })) || [];
     return services.sort((a, b) => a.name.localeCompare(b.name));
   }, [userData]);
 
   const calculateTotals = () => {
-    const subtotal = services.reduce((sum, service) => sum + (Number(service.total) || 0), 0);
+    const subtotal = services.reduce(
+      (sum, service) => sum + (Number(service.total) || 0),
+      0
+    );
     let discountAmount = 0;
 
     if (totals.discountType === "percentage") {
@@ -88,8 +101,12 @@ const NewEstimateMainn = () => {
   }, [services, totals.discount, totals.discountType]);
 
   // Render null or loading indicator while user data is not available
-  if (loading || !userData) return <div className="flex justify-center items-center h-screen text-gray-700">Loading user data...</div>;
-
+  if (loading || !userData)
+    return (
+      <div className="flex justify-center items-center h-screen text-gray-700">
+        Loading user data...
+      </div>
+    );
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -110,6 +127,7 @@ const NewEstimateMainn = () => {
               updated.serviceName = ""; // Clear current name for new input
               updated.isCustomInput = true; // Activate custom input mode
               updated.pricePerUnit = 0; // Reset price for the new custom service
+              updated.description = ""; // Clear description for new custom service
             } else {
               // User either selected a predefined service OR typed into a custom input field.
               const selectedOption = userServicesOptions.find(
@@ -121,21 +139,21 @@ const NewEstimateMainn = () => {
               if (selectedOption) {
                 // User selected a predefined option, so it's no longer custom input mode
                 updated.pricePerUnit = selectedOption.price;
+                updated.description = selectedOption.description || ""; // Set description from predefined option, default to empty
                 updated.isCustomInput = false;
               } else {
-                // If no predefined option was selected and it was already a custom input,
-                // means the user is typing. Keep isCustomInput true.
-                // If value is empty and it's not a custom input, reset price.
+                // If the value doesn't match a predefined service and it's not the custom_input option,
+                // it might be a user typing in a custom service name directly into the input.
+                // In this case, keep it as custom input and don't reset price/description unless name is cleared.
                 if (value === "" && !updated.isCustomInput) {
-                    updated.pricePerUnit = 0; // Reset price if select is cleared
+                  updated.pricePerUnit = 0;
+                  updated.description = "";
                 }
-                // If it's a custom input (`updated.isCustomInput` is already true here),
-                // we don't need to change `isCustomInput` or `pricePerUnit` unless explicitly clearing.
-                // This preserves the typing experience.
+                // If it's a custom input, and they're typing, don't change price/description unless they pick a predefined one.
               }
             }
           } else {
-            // For quantity or pricePerUnit changes
+            // This handles changes to 'quantity', 'pricePerUnit', and now 'description'
             updated[field] = value;
           }
 
@@ -149,12 +167,14 @@ const NewEstimateMainn = () => {
   };
 
   const addService = () => {
-    const newId = services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
+    const newId =
+      services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
     setServices((prev) => [
       ...prev,
       {
         id: newId,
         serviceName: "",
+        description: "", // Added description here for new service
         quantity: 1,
         pricePerUnit: 0,
         total: 0,
@@ -165,7 +185,9 @@ const NewEstimateMainn = () => {
 
   const removeService = (idToRemove) => {
     if (services.length > 1) {
-      setServices((prev) => prev.filter((service) => service.id !== idToRemove));
+      setServices((prev) =>
+        prev.filter((service) => service.id !== idToRemove)
+      );
     }
   };
 
@@ -178,7 +200,10 @@ const NewEstimateMainn = () => {
 
   const handleSubmit = async () => {
     try {
-      const isExpired = userData && userData.planExpiresAt && new Date(userData.planExpiresAt) < new Date();
+      const isExpired =
+        userData &&
+        userData.planExpiresAt &&
+        new Date(userData.planExpiresAt) < new Date();
       if (isExpired) {
         toast.error("🚫 Your plan has expired. Please upgrade to continue.");
         setTimeout(() => {
@@ -188,7 +213,8 @@ const NewEstimateMainn = () => {
       }
 
       // Using userData.firebaseUID directly from context
-      const firebaseUID = userData?.firebaseUID || localStorage.getItem("firebaseUID");
+      const firebaseUID =
+        userData?.firebaseUID || localStorage.getItem("firebaseUID");
       if (!firebaseUID) {
         toast.error("Authentication error. Please log in again.");
         return;
@@ -196,13 +222,15 @@ const NewEstimateMainn = () => {
 
       // Check for left_credits (assuming 2 credits for new estimate creation)
       if (userData && userData.left_credits < 2) {
-        toast.error("You're out of credits. Please upgrade your plan to create new estimates.");
+        toast.error(
+          "You're out of credits. Please upgrade your plan to create new estimates."
+        );
         setTimeout(() => {
           navigate("/plancreditmanagement"); // Corrected route
         }, 2000);
         return;
       }
-      
+
       if (userData && userData.isSuspended) {
         toast.error("Your account is suspended. Please contact support.");
         setTimeout(() => {
@@ -210,7 +238,6 @@ const NewEstimateMainn = () => {
         }, 2000);
         return;
       }
-
 
       const requiredFields = [
         formData.clientName,
@@ -224,20 +251,24 @@ const NewEstimateMainn = () => {
         return;
       }
 
-      const validServices = services.filter(s =>
-        s.serviceName.trim() !== "" && s.quantity > 0 && s.pricePerUnit >= 0
+      const validServices = services.filter(
+        (s) =>
+          s.serviceName.trim() !== "" && s.quantity > 0 && s.pricePerUnit >= 0
       );
 
       if (validServices.length === 0) {
-        toast.error("Please add at least one valid service with a name, quantity (min 1), and valid price (min ₹0).");
+        toast.error(
+          "Please add at least one valid service with a name, quantity (min 1), and valid price (min ₹0)."
+        );
         return;
       }
 
       const payload = {
         firebaseUID,
         ...formData,
-        services: validServices.map(s => ({ // Ensure no `id` or `isCustomInput` is sent to backend
+        services: validServices.map((s) => ({
           serviceName: s.serviceName,
+          description: s.description, // IMPORTANT: Ensure 'description' is included in the payload
           quantity: s.quantity,
           pricePerUnit: s.pricePerUnit,
           total: s.total,
@@ -249,6 +280,8 @@ const NewEstimateMainn = () => {
         status: "draft", // New estimates start as draft
         date: new Date().toISOString(),
       };
+
+      console.log("Frontend Payload:", payload); // Debugging: Check the payload before sending
 
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/estimates/create`,
@@ -266,8 +299,14 @@ const NewEstimateMainn = () => {
         }, 1500);
       }
     } catch (err) {
-      console.error("❌ Failed to create estimate", err.response?.data || err.message);
-      toast.error(err.response?.data?.message || "Failed to save estimate. Please try again.");
+      console.error(
+        "❌ Failed to create estimate",
+        err.response?.data || err.message
+      );
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to save estimate. Please try again."
+      );
     }
   };
 
@@ -398,6 +437,22 @@ const NewEstimateMainn = () => {
                 className="w-full p-4 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
               />
             </div>
+
+            {/* Main Estimate Description Field */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Estimate Description (Optional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                placeholder="Provide a detailed description of the overall event or function..."
+                rows={3}
+                className="w-full p-4 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+              ></textarea>
+            </div>
           </div>
         </div>
 
@@ -420,73 +475,92 @@ const NewEstimateMainn = () => {
           </div>
 
           <div className="space-y-4">
-            {userServicesOptions.length === 0 && services.length === 1 && services[0].serviceName === "" && !services[0].isCustomInput ? (
-              <div className="text-center p-8 bg-gray-50 rounded-2xl border border-gray-100">
-                <p className="text-lg font-medium text-gray-700 mb-4">
-                  Looks like you haven't added any custom services yet!
-                </p>
-                <p className="text-gray-600 mb-6">
-                  Define your services and their default prices, or write a new one directly below.
-                </p>
-                <button
-                  onClick={() => navigate("/settings/preferences")} // Assuming this is the correct route
-                  className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-md"
-                >
-                  Go to Preferences to Create Services
-                </button>
-              </div>
-            ) : (
-              services.map((service) => (
-                <div
-                  key={service.id}
-                  className="bg-gradient-to-r from-gray-50 to-purple-50/30 p-4 rounded-2xl border border-gray-100"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Service Name
-                      </label>
-                      {service.isCustomInput ? (
-                        <input
-                          type="text"
-                          value={service.serviceName}
-                          onChange={(e) =>
-                            handleServiceChange(
-                              service.id,
-                              "serviceName",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Enter new service name"
-                          className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          autoFocus
-                        />
-                      ) : (
-                        <select
-                          value={service.serviceName}
-                          onChange={(e) =>
-                            handleServiceChange(
-                              service.id,
-                              "serviceName",
-                              e.target.value
-                            )
-                          }
-                          className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        >
-                          <option value="">Select a service</option>
-                          <option value="custom_input" className="font-bold text-purple-700 bg-purple-50">
-                            --- Write new service ---
-                          </option>
-                          {userServicesOptions.map((option) => (
-                            <option key={option.name} value={option.name}>
-                              {option.name} {option.price > 0 ? `(₹${option.price.toLocaleString()})` : ''}
+            {services.map((service, index) => (
+              <div
+                key={service.id}
+                className="bg-gradient-to-r from-gray-50 to-purple-50/30 p-4 rounded-2xl border border-gray-100"
+              >
+                {/* Changed from grid to flex for responsiveness */}
+                <div className="flex flex-col">
+                  {/* Service Name and Description in one row on desktop */}
+                  <div>
+                    <div className="flex flex-col md:flex-row gap-2">
+                      {/* Service Name */}
+                      <div className="w-full md:w-1/2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Service Name
+                        </label>
+                        {service.isCustomInput ? (
+                          <input
+                            type="text"
+                            value={service.serviceName}
+                            onChange={(e) =>
+                              handleServiceChange(
+                                service.id,
+                                "serviceName",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Type custom service name"
+                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          />
+                        ) : (
+                          <select
+                            value={service.serviceName}
+                            onChange={(e) =>
+                              handleServiceChange(
+                                service.id,
+                                "serviceName",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          >
+                            <option value="">Select a service</option>
+                            <option
+                              value="custom_input"
+                              className="font-bold text-purple-700 bg-purple-50"
+                            >
+                              --- Write new service ---
                             </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+                            {userServicesOptions.map((option) => (
+                              <option key={option.name} value={option.name}>
+                                {option.name}{" "}
+                                {option.price > 0
+                                  ? `(₹${option.price.toLocaleString()})`
+                                  : ""}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
 
-                    <div>
+                      {/* Service Description */}
+                      <div className="w-full md:w-1/2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Service Description (Optional)
+                        </label>
+                        <textarea
+                          value={service.description} // Correctly bound to 'description'
+                          onChange={(e) =>
+                            handleServiceChange(
+                              service.id,
+                              "description",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Details for this specific service..."
+                          rows={2}
+                          className="w-full p-1 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quantity, Price per Unit, Total + Remove Button in one row with gap */}
+                  <div className="flex flex-col md:flex-row gap-2 mt-4">
+                    {/* Quantity */}
+                    <div className="w-full md:w-1/3">
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Quantity
                       </label>
@@ -505,14 +579,14 @@ const NewEstimateMainn = () => {
                       />
                     </div>
 
-                    <div>
+                    {/* Price per Unit */}
+                    <div className="w-full md:w-1/3">
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Price per Unit (₹)
+                        Price per Unit
                       </label>
                       <input
                         type="number"
                         min="0"
-                        step="0.01"
                         value={service.pricePerUnit}
                         onChange={(e) =>
                           handleServiceChange(
@@ -525,7 +599,8 @@ const NewEstimateMainn = () => {
                       />
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Total + Remove Button */}
+                    <div className="flex items-end w-full md:w-1/3 gap-2">
                       <div className="flex-1">
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Total
@@ -545,8 +620,8 @@ const NewEstimateMainn = () => {
                     </div>
                   </div>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
 

@@ -495,7 +495,7 @@ const PlansCreditsMainn = () => {
 
                   <div className="mb-3 sm:mb-4"> {/* Adjusted margin */}
                     <span className="text-2xl sm:text-3xl font-bold"> {/* Adjusted text size */}
-                      {pkg.credits} estimates
+                      {pkg.credits} Credits
                     </span>
                     {pkg.bonusCredits > 0 && (
                       <div className="text-xs sm:text-sm text-green-600 font-medium"> {/* Adjusted text size */}

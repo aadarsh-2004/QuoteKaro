@@ -13,7 +13,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react"; // Added useCallback
 import axios from "axios";
 
 import WelcomeSection from "./WelcomeSection";
@@ -35,15 +35,22 @@ const EditEstimateMainn = () => {
     functionName: "",
     phoneNumber: "",
     location: "",
-    description: "",
+    description: "", // Main estimate description
     startDate: "",
     endDate: "",
     notes: "",
   });
 
-  // Added isCustomInput to service state for conditional rendering
   const [services, setServices] = useState([
-    { id: 1, serviceName: "", quantity: 1, pricePerUnit: 0, total: 0, isCustomInput: false },
+    {
+      id: 1,
+      serviceName: "",
+      quantity: 1,
+      pricePerUnit: 0,
+      total: 0,
+      isCustomInput: false,
+      description: "",
+    }, // Added serviceDescription
   ]);
 
   const [totals, setTotals] = useState({
@@ -53,21 +60,35 @@ const EditEstimateMainn = () => {
     netTotal: 0,
   });
 
-  // Use user's custom services for options
   const userServicesOptions = useMemo(() => {
-    const services = userData?.services?.map((s) => ({
-      name: s.name,
-      price: s.price,
-    })) || [];
+    const services =
+      userData?.services?.map((s) => ({
+        name: s.name,
+        price: s.price,
+      })) || [];
     return services.sort((a, b) => a.name.localeCompare(b.name));
   }, [userData]);
 
-
   const statusOptions = [
-    { value: "draft", label: "Draft", icon: AlertCircle, color: "text-gray-600" },
+    {
+      value: "draft",
+      label: "Draft",
+      icon: AlertCircle,
+      color: "text-gray-600",
+    },
     { value: "sent", label: "Sent", icon: Clock, color: "text-blue-600" },
-    { value: "approved", label: "Approved", icon: CheckCircle, color: "text-green-600" },
-    { value: "rejected", label: "Rejected", icon: XCircle, color: "text-red-600" },
+    {
+      value: "approved",
+      label: "Approved",
+      icon: CheckCircle,
+      color: "text-green-600",
+    },
+    {
+      value: "rejected",
+      label: "Rejected",
+      icon: XCircle,
+      color: "text-red-600",
+    },
   ];
 
   const estimateToEdit = useMemo(() => {
@@ -82,9 +103,13 @@ const EditEstimateMainn = () => {
         functionName: estimateToEdit.functionName || "",
         phoneNumber: estimateToEdit.phoneNumber || "",
         location: estimateToEdit.location || "",
-        description: estimateToEdit.description || "",
-        startDate: estimateToEdit.startDate ? new Date(estimateToEdit.startDate).toISOString().slice(0, 10) : "",
-        endDate: estimateToEdit.endDate ? new Date(estimateToEdit.endDate).toISOString().slice(0, 10) : "",
+        description: estimateToEdit.description || "", // Main estimate description
+        startDate: estimateToEdit.startDate
+          ? new Date(estimateToEdit.startDate).toISOString().slice(0, 10)
+          : "",
+        endDate: estimateToEdit.endDate
+          ? new Date(estimateToEdit.endDate).toISOString().slice(0, 10)
+          : "",
         notes: estimateToEdit.notes || userData.notes || "",
       });
 
@@ -93,14 +118,24 @@ const EditEstimateMainn = () => {
         setServices(
           estimateServices.map((service, index) => ({
             ...service,
-            id: service.id || index + 1, // Ensure each service has an ID
-            // Determine if it was a custom input if its name isn't in predefined options
-            isCustomInput: !userServicesOptions.some(opt => opt.name === service.serviceName),
+            id: service.id || index + 1,
+            description: service.description || "", // Populate description
+            isCustomInput: !userServicesOptions.some(
+              (opt) => opt.name === service.serviceName
+            ),
           }))
         );
       } else {
         setServices([
-          { id: 1, serviceName: "", quantity: 1, pricePerUnit: 0, total: 0, isCustomInput: false },
+          {
+            id: 1,
+            serviceName: "",
+            quantity: 1,
+            pricePerUnit: 0,
+            total: 0,
+            isCustomInput: false,
+            description: "",
+          },
         ]);
       }
 
@@ -111,71 +146,62 @@ const EditEstimateMainn = () => {
         netTotal: estimateToEdit.netTotal || 0,
       });
     }
-  }, [estimateToEdit, userData, userServicesOptions]); // Added userServicesOptions to dependency array
+  }, [estimateToEdit, userData, userServicesOptions]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
-  };
+  }, []);
 
-  const handleServiceChange = (id, field, value) => {
-    setServices((prev) =>
-      prev.map((service) => {
-        if (service.id === id) {
-          const updated = { ...service };
+  const handleServiceChange = useCallback(
+    (id, field, value) => {
+      setServices((prev) =>
+        prev.map((service) => {
+          if (service.id === id) {
+            const updated = { ...service };
 
-          if (field === "serviceName") {
-            if (value === "custom_input") {
-              // User explicitly selected 'Write new service' from the dropdown
-              updated.serviceName = ""; // Clear current name for new input
-              updated.isCustomInput = true; // Activate custom input mode
-              updated.pricePerUnit = 0; // Reset price for the new custom service
-            } else {
-              // User either selected a predefined service OR typed into a custom input field.
-              const selectedOption = userServicesOptions.find(
-                (option) => option.name === value
-              );
-
-              updated.serviceName = value; // Update the service name (either selected or typed)
-
-              if (selectedOption) {
-                // User selected a predefined option, so it's no longer custom input mode
-                updated.pricePerUnit = selectedOption.price;
-                updated.isCustomInput = false;
+            if (field === "serviceName") {
+              if (value === "custom_input") {
+                updated.serviceName = "";
+                updated.isCustomInput = true;
+                updated.pricePerUnit = 0;
               } else {
-                // If no predefined option was selected:
-                // If it's currently a custom input (isCustomInput is true), it means the user is typing.
-                // If it's not a custom input and the value is empty, it means they cleared the select.
-                // We don't change `isCustomInput` if they are actively typing into a custom input field.
-                // If they clear the text input, `isCustomInput` should remain true to allow re-typing.
-                // The `isCustomInput` should only be set to `false` when a *predefined* option is selected.
-                if (value === "" && !updated.isCustomInput) {
-                    updated.pricePerUnit = 0; // Reset price if select is cleared
-                } else if (updated.isCustomInput) {
-                    // If it's a custom input and value is being typed, keep price as is, or reset if cleared.
-                    // This case handles continuous typing in the custom input box.
-                    updated.pricePerUnit = updated.pricePerUnit; // Keep existing custom price
+                const selectedOption = userServicesOptions.find(
+                  (option) => option.name === value
+                );
+
+                updated.serviceName = value;
+
+                if (selectedOption) {
+                  updated.pricePerUnit = selectedOption.price;
+                  updated.isCustomInput = false;
+                } else {
+                  if (value === "" && !updated.isCustomInput) {
+                    updated.pricePerUnit = 0;
+                  } else if (updated.isCustomInput) {
+                    updated.pricePerUnit = updated.pricePerUnit;
+                  }
                 }
               }
+            } else {
+              updated[field] = value;
             }
-          } else {
-            // For quantity or pricePerUnit changes
-            updated[field] = value;
+
+            updated.total = updated.quantity * updated.pricePerUnit;
+            return updated;
           }
+          return service;
+        })
+      );
+    },
+    [userServicesOptions]
+  ); // Add userServicesOptions to useCallback dependency
 
-          // Recalculate total for quantity, pricePerUnit, or when serviceName causes price change
-          updated.total = updated.quantity * updated.pricePerUnit;
-          return updated;
-        }
-        return service;
-      })
-    );
-  };
-
-  const addService = () => {
-    const newId = services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
+  const addService = useCallback(() => {
+    const newId =
+      services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
     setServices((prev) => [
       ...prev,
       {
@@ -184,18 +210,22 @@ const EditEstimateMainn = () => {
         quantity: 1,
         pricePerUnit: 0,
         total: 0,
-        isCustomInput: false, // Initialize as not a custom input
+        isCustomInput: false,
+        description: "", // Added serviceDescription
       },
     ]);
-  };
+  }, [services]);
 
-  const removeService = (id) => {
-    if (services.length > 1) {
-      setServices((prev) => prev.filter((service) => service.id !== id));
-    }
-  };
+  const removeService = useCallback(
+    (id) => {
+      if (services.length > 1) {
+        setServices((prev) => prev.filter((service) => service.id !== id));
+      }
+    },
+    [services.length]
+  );
 
-  const calculateTotals = () => {
+  const calculateTotals = useCallback(() => {
     const subtotal = services.reduce(
       (sum, service) => sum + (Number(service.total) || 0),
       0
@@ -215,21 +245,23 @@ const EditEstimateMainn = () => {
       subtotal,
       netTotal: netTotal,
     }));
-  };
+  }, [services, totals.discount, totals.discountType]);
 
-  const handleDiscountChange = (field, value) => {
+  const handleDiscountChange = useCallback((field, value) => {
     setTotals((prev) => ({
       ...prev,
       [field]: value,
     }));
-  };
+  }, []);
 
   useEffect(() => {
     calculateTotals();
-  }, [services, totals.discount, totals.discountType]);
+  }, [calculateTotals]); // Dependency on memoized calculateTotals
 
   const getStatusBadge = (status) => {
-    const statusOption = statusOptions.find((option) => option.value === status);
+    const statusOption = statusOptions.find(
+      (option) => option.value === status
+    );
     if (!statusOption) return null;
 
     const Icon = statusOption.icon;
@@ -242,47 +274,50 @@ const EditEstimateMainn = () => {
   };
 
   const handleSubmit = async () => {
-    if (isLoading) return; // Prevent double submission
+    if (isLoading) return;
 
     setIsLoading(true);
 
     try {
-      const isExpired = userData && userData.planExpiresAt && new Date(userData.planExpiresAt) < new Date();
+      const isExpired =
+        userData &&
+        userData.planExpiresAt &&
+        new Date(userData.planExpiresAt) < new Date();
       if (isExpired) {
         toast.error("🚫 Your plan has expired. Please upgrade to continue.");
         setTimeout(() => {
-          navigate("/plancreditmanagement"); // Corrected route
+          navigate("/plancreditmanagement");
         }, 2000);
-        setIsLoading(false); // Stop loading on error
+        setIsLoading(false);
         return;
       }
 
       if (userData && userData.left_credits < 0.5) {
         toast.error("You're out of credits. Please upgrade to continue.");
         setTimeout(() => {
-          navigate("/plancreditmanagement"); // Corrected route
+          navigate("/plancreditmanagement");
         }, 2000);
-        setIsLoading(false); // Stop loading on error
+        setIsLoading(false);
         return;
       }
 
       if (userData && userData.isSuspended) {
         toast.error("Your account is suspended. Please contact support.");
         setTimeout(() => {
-          navigate("/plancreditmanagement"); // Corrected route
+          navigate("/plancreditmanagement");
         }, 2000);
-        setIsLoading(false); // Stop loading on error
+        setIsLoading(false);
         return;
       }
-      
-      const firebaseUID = userData?.firebaseUID || localStorage.getItem("firebaseUID");
-      if (!firebaseUID) {
+
+      const currentFirebaseUID =
+        userData?.firebaseUID || localStorage.getItem("firebaseUID"); // Renamed to avoid confusion with parameter 'firebaseUID'
+      if (!currentFirebaseUID) {
         toast.error("Authentication error. Please log in again.");
         setIsLoading(false);
         return;
       }
 
-      // Required field validation
       const requiredFields = [
         formData.clientName,
         formData.functionName,
@@ -296,9 +331,11 @@ const EditEstimateMainn = () => {
         return;
       }
 
-      // Validate services
       const validServices = services.filter(
-        (service) => service.serviceName && service.serviceName.trim() !== "" && (service.quantity > 0 || service.pricePerUnit > 0)
+        (service) =>
+          service.serviceName &&
+          service.serviceName.trim() !== "" &&
+          (service.quantity > 0 || service.pricePerUnit > 0)
       );
 
       if (validServices.length === 0) {
@@ -308,19 +345,20 @@ const EditEstimateMainn = () => {
       }
 
       const payload = {
-        firebaseUID,
+        firebaseUID: currentFirebaseUID, // Use the current firebaseUID
         ...formData,
-        services: validServices.map(s => ({
+        services: validServices.map((s) => ({
           serviceName: s.serviceName,
           quantity: s.quantity,
           pricePerUnit: s.pricePerUnit,
           total: s.total,
+          description: s.description, // Include serviceDescription
         })),
         subtotal: totals.subtotal,
         discount: totals.discount,
         discountType: totals.discountType,
         netTotal: totals.netTotal,
-        date: new Date().toISOString(), // Use current date for update timestamp
+        date: new Date().toISOString(),
       };
 
       const res = await axios.put(
@@ -331,7 +369,7 @@ const EditEstimateMainn = () => {
       if (res.data.success) {
         toast.success("Estimate updated successfully ✅");
         console.log("✅ Estimate updated successfully", res.data);
-        await refresh(); // Refresh user data to get updated credits, etc.
+        await refresh();
 
         if (refreshEstimates) {
           await refreshEstimates();
@@ -341,28 +379,44 @@ const EditEstimateMainn = () => {
           navigate("/dashboard");
         }, 2000);
       } else {
-        toast.error("Failed to update estimate: " + (res.data.message || "Unknown error"));
+        toast.error(
+          "Failed to update estimate: " + (res.data.message || "Unknown error")
+        );
       }
     } catch (err) {
-      console.error("❌ Failed to update estimate", err.response?.data || err.message);
-      toast.error("Failed to update estimate: " + (err.response?.data?.message || err.message));
+      console.error(
+        "❌ Failed to update estimate",
+        err.response?.data || err.message
+      );
+      toast.error(
+        "Failed to update estimate: " +
+          (err.response?.data?.message || err.message)
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (loading || !estimates || !userData) return <div className="flex justify-center items-center h-screen text-gray-700">Loading...</div>;
-  if (!estimateToEdit) return <div className="flex justify-center items-center h-screen text-red-700">Estimate not found or unauthorized access.</div>;
+  if (loading || !estimates || !userData)
+    return (
+      <div className="flex justify-center items-center h-screen text-gray-700">
+        Loading...
+      </div>
+    );
+  if (!estimateToEdit)
+    return (
+      <div className="flex justify-center items-center h-screen text-red-700">
+        Estimate not found or unauthorized access.
+      </div>
+    );
 
   return (
     <div className="flex-1 p-0 m-0 md:p-8 overflow-y-auto">
-      {/* Header with Status Dropdown */}
       <div className="flex-col justify-between items-center mb-6">
         <WelcomeSection name="Edit-Estimate" />
       </div>
 
       <div className="max-w-7xl mx-auto p-3 md:p-6 space-y-6">
-        {/* Status Dropdown in Top Right */}
         <div className="bg-white rounded-2xl p-4 shadow-lg border w-fit border-purple-100">
           <div className="flex items-center gap-3 ">
             <span className="text-sm font-semibold text-gray-700">Status:</span>
@@ -377,9 +431,7 @@ const EditEstimateMainn = () => {
                 </option>
               ))}
             </select>
-            <div className="ml-2">
-              {getStatusBadge(formData.status)}
-            </div>
+            <div className="ml-2">{getStatusBadge(formData.status)}</div>
           </div>
         </div>
         {/* Client Information Card */}
@@ -438,9 +490,7 @@ const EditEstimateMainn = () => {
                 />
                 <input
                   type="date"
-                  value={
-                    formData.startDate
-                  }
+                  value={formData.startDate}
                   onChange={(e) =>
                     handleInputChange("startDate", e.target.value)
                   }
@@ -505,6 +555,22 @@ const EditEstimateMainn = () => {
                 className="w-full p-4 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
               />
             </div>
+
+            {/* Main Estimate Description Field */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Estimate Description (Optional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                placeholder="Provide a detailed description of the overall event or function..."
+                rows={3}
+                className="w-full p-4 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+              ></textarea>
+            </div>
           </div>
         </div>
 
@@ -532,105 +598,144 @@ const EditEstimateMainn = () => {
                 key={service.id}
                 className="bg-gradient-to-r from-gray-50 to-purple-50/30 p-4 rounded-2xl border border-gray-100"
               >
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Service Name
-                    </label>
-                    {service.isCustomInput ? (
-                      <input
-                        type="text"
-                        value={service.serviceName}
-                        onChange={(e) =>
-                          handleServiceChange(
-                            service.id,
-                            "serviceName",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Type custom service name"
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      />
-                    ) : (
-                      <select
-                        value={service.serviceName}
-                        onChange={(e) =>
-                          handleServiceChange(
-                            service.id,
-                            "serviceName",
-                            e.target.value
-                          )
-                        }
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      >
-                        <option value="">Select a service</option>
-                        <option value="custom_input" className="font-bold text-purple-700 bg-purple-50">
-                          --- Write new service ---
-                        </option>
-                        {userServicesOptions.map((option) => (
-                          <option key={option.name} value={option.name}>
-                            {option.name} {option.price > 0 ? `(₹${option.price.toLocaleString()})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
+                {/* Changed from grid to flex for responsiveness */}
+                <div className="flex flex-col">
+                  {/* Service Name and Description in one row on desktop */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Quantity
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={service.quantity}
-                      onChange={(e) =>
-                        handleServiceChange(
-                          service.id,
-                          "quantity",
-                          parseInt(e.target.value) || 1
-                        )
-                      }
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                    <div className="flex flex-col md:flex-row gap-2">
+                      {/* Service Name */}
+                      <div className="w-full md:w-1/2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Service Name
+                        </label>
+                        {service.isCustomInput ? (
+                          <input
+                            type="text"
+                            value={service.serviceName}
+                            onChange={(e) =>
+                              handleServiceChange(
+                                service.id,
+                                "serviceName",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Type custom service name"
+                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          />
+                        ) : (
+                          <select
+                            value={service.serviceName}
+                            onChange={(e) =>
+                              handleServiceChange(
+                                service.id,
+                                "serviceName",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          >
+                            <option value="">Select a service</option>
+                            <option
+                              value="custom_input"
+                              className="font-bold text-purple-700 bg-purple-50"
+                            >
+                              --- Write new service ---
+                            </option>
+                            {userServicesOptions.map((option) => (
+                              <option key={option.name} value={option.name}>
+                                {option.name}{" "}
+                                {option.price > 0
+                                  ? `(₹${option.price.toLocaleString()})`
+                                  : ""}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Price per Unit
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={service.pricePerUnit}
-                      onChange={(e) =>
-                        handleServiceChange(
-                          service.id,
-                          "pricePerUnit",
-                          parseFloat(e.target.value) || 0
-                        )
-                      }
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Total
-                      </label>
-                      <div className="w-full p-3 bg-purple-50 border border-purple-200 rounded-xl font-bold text-purple-600">
-                        ₹{service.total.toLocaleString()}
+                      {/* Service Description */}
+                      <div className="w-full md:w-1/2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Service Description (Optional)
+                        </label>
+                        <textarea
+                          value={service.description} // Correctly bound to 'description'
+                          onChange={(e) =>
+                            handleServiceChange(
+                              service.id,
+                              "description",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Details for this specific service..."
+                          rows={2}
+                          className="w-full p-1 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                        ></textarea>
                       </div>
                     </div>
-                    {services.length > 1 && (
-                      <button
-                        onClick={() => removeService(service.id)}
-                        className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    )}
+                  </div>
+
+                  {/* Quantity, Price per Unit, Total + Remove Button in one row with gap */}
+                  <div className="flex flex-col md:flex-row gap-2 mt-4">
+                    {/* Quantity */}
+                    <div className="w-full md:w-1/3">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={service.quantity}
+                        onChange={(e) =>
+                          handleServiceChange(
+                            service.id,
+                            "quantity",
+                            parseInt(e.target.value) || 1
+                          )
+                        }
+                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      />
+                    </div>
+
+                    {/* Price per Unit */}
+                    <div className="w-full md:w-1/3">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Price per Unit
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={service.pricePerUnit}
+                        onChange={(e) =>
+                          handleServiceChange(
+                            service.id,
+                            "pricePerUnit",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      />
+                    </div>
+
+                    {/* Total + Remove Button */}
+                    <div className="flex items-end w-full md:w-1/3 gap-2">
+                      <div className="flex-1">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Total
+                        </label>
+                        <div className="w-full p-3 bg-purple-50 border border-purple-200 rounded-xl font-bold text-purple-600">
+                          ₹{service.total.toLocaleString()}
+                        </div>
+                      </div>
+                      {services.length > 1 && (
+                        <button
+                          onClick={() => removeService(service.id)}
+                          className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -714,7 +819,7 @@ const EditEstimateMainn = () => {
               <span className="text-xl font-bold text-purple-900">
                 Net Total
               </span>
-              <span className="text-2xl  bg-gradient-to-r font-bold from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="text-2xl  bg-gradient-to-r font-bold from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 ₹{totals.netTotal.toLocaleString()}
               </span>
             </div>
