@@ -9,7 +9,7 @@ const estimateSchema = new mongoose.Schema({
   },
 
   clientName: { type: String, required: true },
-  functionName: { type: String },        // You renamed eventName to functionName
+  functionName: { type: String },        
   location: { type: String },
   phoneNumber: { type: String },
   description: { type: String },
@@ -23,6 +23,7 @@ const estimateSchema = new mongoose.Schema({
   services: [
     {
       serviceName: { type: String, required: true },
+      description: { type: String },
       quantity: { type: Number, default: 1 },
       pricePerUnit: { type: Number, default: 0 },
       total: { type: Number, default: 0 },
