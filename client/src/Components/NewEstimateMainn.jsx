@@ -173,8 +173,8 @@ const NewEstimateMainn = () => {
     const newId =
       services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
     setServices((prev) => [
-      ...prev,
       {
+        // ⭐ MODIFICATION HERE: Prepend the new service
         id: newId,
         serviceName: "",
         description: "", // Added description here for new service
@@ -183,6 +183,7 @@ const NewEstimateMainn = () => {
         total: 0,
         isCustomInput: false, // Initialize as not a custom input
       },
+      ...prev, // Existing services come after the new one
     ]);
   };
 

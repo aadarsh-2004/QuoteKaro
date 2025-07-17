@@ -27,6 +27,7 @@ const EditEstimateMainn = () => {
   const { estimates, refreshEstimates } = useEstimates();
   const { userData, loading, refresh } = useUser();
   const navigate = useNavigate();
+  const [newlyCreatedEstimateId, setNewlyCreatedEstimateId] = useState(null);
   const [edited  , setedited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -203,7 +204,7 @@ const EditEstimateMainn = () => {
     const newId =
       services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
     setServices((prev) => [
-      ...prev,
+      
       {
         id: newId,
         serviceName: "",
@@ -213,6 +214,7 @@ const EditEstimateMainn = () => {
         isCustomInput: false,
         description: "", // Added serviceDescription
       },
+      ...prev,
     ]);
   }, [services]);
 
