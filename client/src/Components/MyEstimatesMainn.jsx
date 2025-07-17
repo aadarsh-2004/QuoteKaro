@@ -19,11 +19,147 @@ import { Link } from "react-router-dom";
 
 function MyEstimatesMainn() {
   const { estimates, loading, deleteEstimate } = useEstimates();
-
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+    const [modalType, setModalType] = useState("loading");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   if (loading || !estimates) return null;
 
+  const handleSendEstimate = async (estimate) => {
+    console.log(estimate.pdfUrl);
+    
+    if (isProcessing) return; // Prevent multiple clicks
+    setIsProcessing(true);
+    setModalMessage("Preparing estimate for sharing...");
+    setModalType("loading");
+
+    const mockStudioData = {
+    name: "Perfect Moment",
+    phone: "(123) 456-7890",
+    email: "info@perfectmoment.com",
+    address: { d_address: "123 Photography Lane", city: "Amityville", state: "ST", pincode: "12345" },
+    logoUrl: null,
+    website: null,
+    socialLinks: { youtube: null, instagram: null, facebook: null },
+    policies: null,
+    notes: null,
+  };
+    try {
+      const pdfUrl = estimate.pdfUrl; // Get the PDF URL directly from the estimate object
+      if (!pdfUrl) {
+        setModalMessage("Error: PDF URL not found for this estimate.");
+        setModalType("error");
+        return;
+      }
+
+      // Optional: Update estimate status to 'sent' in MongoDB if it's not already
+      // This part is similar to ThemeMinimal's step 3, but simplified as PDF is already uploaded
+      if (estimate.status !== 'sent' && userData && userData.firebaseUID) {
+          setModalMessage(`Updating estimate status to 'sent'...`);
+          const backendUrl = import.meta.env.VITE_BACKEND_URL;
+          if (!backendUrl) {
+              throw new Error("VITE_BACKEND_URL is not defined in your environment variables.");
+          }
+
+          const response = await fetch(`${backendUrl}/api/estimates/${estimate._id}/update-pdf-url`, {
+              method: 'PUT',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  pdfUrl: pdfUrl,
+                  status: 'sent',
+                  firebaseUID: userData.firebaseUID, // Send firebaseUID from context
+              }),
+          });
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(`Failed to update estimate status in MongoDB: ${errorData.message || response.statusText}`);
+          }
+          console.log("MongoDB update response:", await response.json());
+      }
+
+
+      // Share the PDF URL via Web Share API or WhatsApp
+      const shareTitle = `Estimate from ${mockStudioData.name}`;
+      const whatsappMessage = `Hi ${estimate.clientName},\n\nHere's your estimate from ${mockStudioData.name}:\n${pdfUrl}\n\nEstimate ID: ${estimate._id}\n\nLooking forward to working with you!`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareTitle,
+            text: whatsappMessage,
+            url: pdfUrl,
+          });
+          console.log('Content shared successfully via Web Share API');
+          setModalMessage("Estimate shared successfully ✅");
+          setModalType("success");
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            console.log('Web Share API cancelled by user.');
+            setModalMessage("Sharing cancelled.");
+            setModalType("info"); // Use 'info' for user cancellation
+          } else {
+            console.error('Error sharing via Web Share API:', error);
+            setModalMessage("Failed to share via Web Share API. Opening WhatsApp directly.");
+            setModalType("error");
+            window.open(`https://wa.me/${estimate.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+          }
+        }
+      } else {
+        // Fallback for browsers that do not support Web Share API
+        setModalMessage("Web Share API not supported. Opening WhatsApp directly.");
+        setModalType("info");
+        window.open(`https://wa.me/${estimate.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+      }
+
+    } catch (error) {
+      console.error("Error during share process:", error);
+      setModalMessage(`Failed to share estimate: ${error.message}`);
+      setModalType("error");
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setModalMessage(""), 3000); // Clear message after 3 seconds
+    }
+  };
+  const LoadingModal = ({ message, type }) => {
+      if (!message) return null;
+  
+      let icon;
+      let textColor;
+      switch (type) {
+        case 'loading':
+          icon = <FaSpinner className="animate-spin text-4xl" />;
+          textColor = "text-blue-500";
+          break;
+        case 'success':
+          icon = <FaCheckCircle className="text-4xl" />;
+          textColor = "text-green-500";
+          break;
+        case 'error':
+          icon = <FaTimesCircle className="text-4xl" />;
+          textColor = "text-red-500";
+          break;
+        case 'info':
+          icon = <FaInfoCircle className="text-4xl" />;
+          textColor = "text-gray-500";
+          break;
+        default:
+          icon = null;
+          textColor = "text-gray-700";
+      }
+  
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center max-w-sm text-center">
+            {icon && <div className={`mb-4 ${textColor}`}>{icon}</div>}
+            <p className="text-lg font-semibold text-gray-800">{message}</p>
+          </div>
+        </div>
+      );
+    };
   
   const EstimateCard = ({ estimate }) => {
     const navigate = useNavigate();
@@ -39,14 +175,14 @@ function MyEstimatesMainn() {
         label: "Send",
         icon: Send,
         color: "green",
-        onClick: () => console.log("Send"),
+        onClick:() => handleSendEstimate(estimate)
       },
-      {
-        label: "PDF",
-        icon: Download,
-        color: "orange",
-        onClick: () => console.log("Download"),
-      },
+      // {
+      //   label: "PDF",
+      //   icon: Download,
+      //   color: "orange",
+      //   onClick: () => console.log("Download"),
+      // },
       {
         label: "Delete",
         icon: Trash2,

@@ -33,6 +33,9 @@ const NewEstimateMainn = () => {
     notes: "",
   });
 
+  // State to hold the ID of the newly created estimate, enabling the "View & Share" button
+  const [newlyCreatedEstimateId, setNewlyCreatedEstimateId] = useState(null);
+
   // Populate notes from userData when available
   useEffect(() => {
     if (userData && userData.notes) {
@@ -291,12 +294,14 @@ const NewEstimateMainn = () => {
       if (res.data.success) {
         toast.success("Draft Saved ✅ ");
         console.log("✅ Estimate created successfully", res.data);
+        setNewlyCreatedEstimateId(res.data.estimate._id); // Set the ID of the newly created estimate
         await refresh(); // Refresh user data after credit deduction
         await refreshEstimates(); // Refresh estimates list
 
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1500);
+        // Removed automatic navigation to allow user to click "View & Share"
+        // setTimeout(() => {
+        //   navigate("/dashboard");
+        // }, 1500);
       }
     } catch (err) {
       console.error(
@@ -732,14 +737,19 @@ const NewEstimateMainn = () => {
         <div className="flex flex-col sm:flex-row gap-4 text-white">
           <button
             onClick={handleSubmit}
-            className="flex-1 bg-gradient-to-r hover:from-pink-600 hover:to-purple-600 hover:scale-105 py-4 px-6 rounded-2xl font-bold hover:bg-gradient-to-r from-purple-600  hover: from-pink-600 to-pink-600  transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+            className="flex-1 bg-gradient-to-r hover:from-pink-600 hover:to-purple-600 hover:scale-105 py-4 px-6 rounded-2xl font-bold hover:bg-gradient-to-r from-purple-600  hover: from-pink-600 to-pink-600  transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
           >
             <Save size={20} />
             Save as Draft
           </button>
-          <button className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:scale-105 text-white py-4 px-6 rounded-2xl font-bold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3">
+          <button
+            onClick={() => newlyCreatedEstimateId && navigate(`/preview/${newlyCreatedEstimateId}`)}
+            disabled={!newlyCreatedEstimateId} // Disable until an estimate is created
+            className={`flex-1 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:scale-105 text-white py-4 px-6 rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3
+              ${!newlyCreatedEstimateId ? 'opacity-50 cursor-not-allowed' : 'hover:from-emerald-600 hover:to-emerald-700'}`}
+          >
             <Send size={20} />
-            Send Estimate
+            View & Share Estimate
           </button>
         </div>
       </div>

@@ -27,7 +27,7 @@ const EditEstimateMainn = () => {
   const { estimates, refreshEstimates } = useEstimates();
   const { userData, loading, refresh } = useUser();
   const navigate = useNavigate();
-
+  const [edited  , setedited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     status: "",
@@ -277,6 +277,7 @@ const EditEstimateMainn = () => {
     if (isLoading) return;
 
     setIsLoading(true);
+    
 
     try {
       const isExpired =
@@ -370,14 +371,15 @@ const EditEstimateMainn = () => {
         toast.success("Estimate updated successfully ✅");
         console.log("✅ Estimate updated successfully", res.data);
         await refresh();
+        setedited(true); 
 
         if (refreshEstimates) {
           await refreshEstimates();
         }
 
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 2000);
+        // setTimeout(() => {
+        //   navigate("/dashboard");
+        // }, 2000);
       } else {
         toast.error(
           "Failed to update estimate: " + (res.data.message || "Unknown error")
@@ -855,10 +857,23 @@ const EditEstimateMainn = () => {
           >
             <Save size={20} />
             {isLoading ? "Updating..." : "Update Estimate"}
+           
           </button>
-          <button className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:scale-105 text-white py-4 px-6 rounded-2xl font-bold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3">
+          <button
+            onClick={() =>
+              
+              navigate(`/preview/${estimateToEdit._id}`)
+            }
+            disabled={!edited} // Disable until an estimate is created
+            className={`flex-1 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:scale-105 text-white py-4 px-6 rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3
+                        ${
+                          !edited
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:from-emerald-600 hover:to-emerald-700"
+                        }`}
+          >
             <Send size={20} />
-            Send Estimate
+            View & Share Estimate
           </button>
         </div>
       </div>
