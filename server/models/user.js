@@ -61,7 +61,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    selectedEstimateTheme: { type: String, default: "simple" },
+    selectedEstimateTheme: { type: String, default: "minimal" },
   },
   { timestamps: true }
 );

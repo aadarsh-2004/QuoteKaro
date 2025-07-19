@@ -41,7 +41,7 @@ const estimateSchema = new mongoose.Schema({
     default: 'draft',
   },
   
-
+  pdfUrl: { type: String },
   createdAt: {
     type: Date,
     default: Date.now,

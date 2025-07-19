@@ -10,7 +10,9 @@ const app = express();
 
 // middleware
 app.use(cors({origin: '*'}));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // IMPORTANT: Increase limit for large PDF base64 strings
+app.use(express.urlencoded({ limit: '50mb', extended: true })); // For URL-encoded bodies if needed
+
 
 // connectionDB
 connectionDB();
@@ -44,6 +46,10 @@ app.use('/estimate', editstimateRoute);
 // delete Estimate
 const deleteestimateRoute = require('./routes/deleteEstimate');
 app.use('/estimate', deleteestimateRoute);
+
+// pdf Estimate
+const pdfestimateRoute = require('./routes/estimatepdf');
+app.use('/api/estimates', pdfestimateRoute);
 
 // Get All Estimate +  Get single Estimate by ID
 const getEstimateRoute = require('./routes/getAllEstimates');
