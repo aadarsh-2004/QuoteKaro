@@ -7,7 +7,6 @@ import { useUser } from '../../context/UserContext';
 // Import the utility functions for S3 upload and database update
 import { uploadPdfToS3Backend, updateEstimateInDb } from "../../Utils/pdfShareUtils";
 
-
 const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
   const { userData, loading: userLoading } = useUser();
 
@@ -15,6 +14,8 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState("loading"); // 'loading', 'success', 'error', 'info'
+  // State to apply temporary styles for PDF capture
+  const [captureStyles, setCaptureStyles] = useState({});
 
   if (!userData || userLoading) {
     return (
@@ -128,7 +129,6 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
   };
 
   // --- Local function to generate PDF Blob from the current estimate's rendered view ---
-  // This function must remain local as it directly interacts with the component's DOM (printRef)
   const generatePdfBlobFromCurrentView = async () => {
     setModalMessage("Generating PDF...");
     setModalType("loading");
@@ -140,18 +140,38 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       return null;
     }
 
-    // Temporarily apply print-specific styles for better PDF output
-    const originalStyle = input.style.cssText;
-    input.style.width = '210mm'; // A4 width
-    input.style.height = 'auto';
-    input.style.position = 'absolute';
-    input.style.left = '-9999px'; // Move off-screen to avoid visual flicker
+    // Apply temporary styles for PDF capture to ensure A4 dimensions and desktop-like layout
+    setCaptureStyles({
+      width: '210mm', // A4 width
+      // height: '297mm', // Removed to allow content to dictate height, for multi-page
+      position: 'absolute',
+      left: '-9999px', // Move off-screen to avoid visual flicker during capture
+      top: '-9999px',
+      // Ensure flex items don't wrap on small screens during capture
+      flexDirection: 'row', // Force row layout for desktop-like PDF
+      alignItems: 'stretch', // Ensure equal height columns
+      boxShadow: 'none', // Remove shadow for capture
+      borderRadius: '0', // Remove border-radius for capture
+      // Important for background images in html2canvas
+      '-webkit-print-color-adjust': 'exact',
+      'print-color-adjust': 'exact',
+      // Also apply these to the direct child if it's the flex container
+      '& > div': {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+      }
+    });
+
+    // Wait for styles to apply (brief timeout)
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
       const canvas = await html2canvas(input, {
-        scale: 1.5, // Higher scale for better resolution
-        useCORS: true, // Important for images loaded from external sources
+        scale: 3, // Higher scale for better resolution, typically 2 or 3
+        useCORS: true, // Important for images loaded from external sources (e.g., logoUrl, background)
         logging: false, // Disable html2canvas logging
+        // windowWidth: 794, // Simulate A4 width (210mm at 96dpi, but scale affects this more directly)
+        // windowHeight: 1123, // Simulate A4 height
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -163,11 +183,13 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       let heightLeft = imgHeight;
       let position = 0;
 
+      // Add image to the first page
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
+      // Add new pages for remaining content
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight; // Calculate position for the next page
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
@@ -182,9 +204,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       return null;
     } finally {
       // Restore original styles after canvas capture
-      if (input) {
-        input.style.cssText = originalStyle;
-      }
+      setCaptureStyles({}); // Clear temporary styles
     }
   };
 
@@ -218,7 +238,10 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       setModalType("error");
     } finally {
       setIsProcessingPdf(false);
-      setTimeout(() => setModalMessage(""), 3000); // Clear message after 3 seconds
+      // set timeout to avoid message disappearing too quickly if it's a success
+      if (modalType === "success" || modalType === "error") {
+        setTimeout(() => setModalMessage(""), 3000);
+      }
     }
   };
 
@@ -300,7 +323,10 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       setModalType("error");
     } finally {
       setIsProcessingPdf(false);
-      setTimeout(() => setModalMessage(""), 3000); // Clear message after 3 seconds
+      // set timeout to avoid message disappearing too quickly if it's a success
+      if (modalType === "success" || modalType === "error") {
+        setTimeout(() => setModalMessage(""), 3000);
+      }
     }
   };
 
@@ -369,35 +395,38 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
         <div className="flex space-x-3">
           <button
             onClick={handleShare}
-            className="p-2 rounded-full bg-blue-500 hover:bg-blue-600 transition-colors text-white flex items-center justify-center"
+            className="p-2 px-4 rounded-full bg-blue-500 hover:bg-blue-600 transition-colors text-white flex items-center justify-center text-sm"
             aria-label="Share estimate"
             disabled={isProcessingPdf}
           >
-            <FaShareAlt size={20} />
-            {isProcessingPdf ? " Sharing..." : " Share"}
+            <FaShareAlt className="mr-2" size={16} />
+            {isProcessingPdf && modalType === 'loading' ? " Sharing..." : " Share"}
           </button>
           <button
             onClick={handleDownloadPdf}
-            className="p-2 rounded-full bg-green-500 hover:bg-green-600 transition-colors text-white flex items-center justify-center"
+            className="p-2 px-4 rounded-full bg-green-500 hover:bg-green-600 transition-colors text-white flex items-center justify-center text-sm"
             aria-label="Download PDF"
             disabled={isProcessingPdf}
           >
-            <FaDownload size={20} />
-            {isProcessingPdf ? " Generating..." : " Download PDF"}
+            <FaDownload className="mr-2" size={16} />
+            {isProcessingPdf && modalType === 'loading' ? " Generating..." : " Download PDF"}
           </button>
         </div>
       </div>
 
       {/* Main content container for preview and PDF generation */}
-      <div ref={printRef} className="w-full max-w-4xl mx-auto font-sans text-gray-900 bg-white shadow-lg rounded-lg overflow-hidden md:shadow-none md:rounded-none print-a4-document-wrapper">
+      {/* Apply captureStyles directly as inline styles for the ref element */}
+      <div ref={printRef} className="w-full max-w-4xl mx-auto font-sans text-gray-900 bg-white shadow-lg rounded-lg overflow-hidden md:shadow-none md:rounded-none estimate-container" style={captureStyles}>
+        {/* Responsive layout for flex container */}
         <div className="flex flex-col md:flex-row">
           {/* Left Section (Image and Contact Info) */}
           <div
-            className="relative w-full md:w-1/3 bg-cover bg-center left-panel-print min-h-[300px] md:min-h-0"
+            className="relative w-full md:w-1/3 bg-cover bg-center left-panel min-h-[300px] md:min-h-0"
             style={{
-              backgroundImage: `url('/couplephoto.jpg')`,
+              backgroundImage: `url('/couplephoto.jpg')`, // Ensure this path is correct
             }}
           >
+            <div className="absolute inset-0 bg-black/40"></div> {/* Overlay for better text readability */}
             <div className="relative z-10 flex flex-col h-full text-white p-6">
               <div className="flex flex-col items-center mb-8 mt-8">
                 {/* Logo or Studio Initial */}
@@ -416,6 +445,9 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
                     </span>
                   </div>
                 )}
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white text-center">
+                  {studioData.name}
+                </h2>
               </div>
 
               {/* Contact Us */}
@@ -443,7 +475,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
                   <p className="flex items-start mb-1">
                     <FaMapMarkerAlt className="mr-2 text-base mt-1" />
                     <span>
-                      {studioData.address.d_address && <span>{studioData.address.d_address}<br/></span>}
+                      {studioData.address.d_address && <span>{studioData.address.d_address}<br /></span>}
                       {studioData.address.city && <span>{studioData.address.city}, </span>}
                       {studioData.address.state && <span>{studioData.address.state}</span>}
                       {studioData.address.pincode && <span> - {studioData.address.pincode}</span>}
@@ -508,7 +540,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
           </div>
 
           {/* Right Section (Estimate Details) */}
-          <div className="w-full md:w-2/3 p-6 sm:p-12 right-panel-print">
+          <div className="w-full md:w-2/3 p-6 sm:p-12 right-panel">
             {/* IMPROVED HEADER SECTION */}
             <div className="flex flex-col items-center mb-6 sm:mb-8">
               <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-1 sm:mb-2 text-center uppercase">
@@ -518,6 +550,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
                 {estimateData.functionName}
               </p>
 
+              {/* Responsive grid for details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-8 w-full">
                 {/* Left Column: Estimate Details */}
                 <div className="text-left text-sm sm:text-base mb-4 sm:mb-0">

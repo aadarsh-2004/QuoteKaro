@@ -2,6 +2,10 @@
 /* @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap'); */
 /* @import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Volkhov:ital,wght@0,400;0,700;1,400;1,700&display=swap'); */
 /* Custom font classes */
+
+
+
+/* Custom font classes (keep these if you use them) */
 .font-poppins {
   font-family: 'Poppins', sans-serif;
 }
@@ -23,6 +27,40 @@
   color: #69B264;
 }
 
+/* Default styles for the estimate container (on-screen display) */
+.estimate-container > div {
+  /* Default to column on small screens */
+  flex-direction: column;
+}
+
+.estimate-container .left-panel {
+  width: 100%; /* Full width on mobile */
+  min-height: 300px; /* Ensure it has some height on mobile */
+}
+
+.estimate-container .right-panel {
+  width: 100%; /* Full width on mobile */
+  padding: 1.5rem; /* Adjust padding for mobile */
+}
+
+/* Desktop styles for the estimate container (min-width: 768px for md breakpoint) */
+@media (min-width: 768px) {
+  .estimate-container > div {
+    /* Revert to row on desktop */
+    flex-direction: row;
+  }
+  .estimate-container .left-panel {
+    width: 33.3333%; /* 1/3 width on desktop */
+    min-height: auto; /* Allow height to adjust */
+  }
+  .estimate-container .right-panel {
+    width: 66.6667%; /* 2/3 width on desktop */
+    padding: 3rem; /* Larger padding for desktop */
+  }
+}
+
+
+/* Print Media Queries - ONLY for actual browser printing (Ctrl+P) */
 @media print {
   /* Define A4 paper size for the page */
   @page {
@@ -36,38 +74,51 @@
     padding: 0;
     -webkit-print-color-adjust: exact; /* Ensures background colors/images are printed */
     print-color-adjust: exact;
+    width: 210mm; /* Force A4 width for the body in print */
+    min-height: 297mm; /* Force A4 height for the body in print */
+    /* Use flexbox to ensure content flows correctly within A4 pages if it gets long */
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Your main document wrapper */
-  .print-a4-document-wrapper {
+  /* Your main document wrapper should be full width for print */
+  .estimate-container {
     width: 210mm; /* A4 width */
-    height: 297mm; /* A4 height */
-    margin: 0 auto; /* Center the content on the page */
+    /* Remove explicit height to allow content to flow to new pages */
+    /* height: 297mm; */
+    margin: 0; /* No auto margin in print mode for precise control */
     box-shadow: none; /* Remove box shadow for print */
     border: none; /* Remove border for print */
-    overflow: hidden; /* Prevent content overflow */
+    overflow: visible; /* Allow content to overflow and trigger page breaks */
     display: flex; /* Use flex to control internal layout */
     flex-direction: column; /* Stack content vertically */
+    /* Ensure no breaks inside elements that shouldn't break */
+    break-inside: avoid;
   }
 
-  /* Adjustments for the flex layout of left and right panels */
-  .print-a4-document-wrapper > div { /* This targets the direct child div which is flex */
-    flex: 1; /* Allow it to grow */
+  /* Adjustments for the flex layout of left and right panels for print */
+  .estimate-container > div { /* This targets the direct child div which is flex */
+    flex: 0 0 auto; /* Prevent growing/shrinking, take content size */
     display: flex; /* Maintain flex for left/right */
+    flex-direction: row !important; /* Force row for print, overriding mobile */
+    align-items: stretch; /* Ensure columns take equal height */
   }
 
-  .left-panel-print {
-    width: 33.3333%; /* Maintain 1/3 width */
-    height: 100%; /* Ensure it takes full height of the parent flex item */
-    /* Adjust padding/margins inside if needed for print */
-    padding: 20px; /* Example: reduced padding for print if needed */
+  .estimate-container .left-panel {
+    width: 33.3333% !important; /* Maintain 1/3 width for print */
+    /* Remove min-height or set to auto for print */
+    min-height: auto !important;
+    height: auto; /* Allow height to be determined by content */
+    -webkit-print-color-adjust: exact; /* Crucial for background images */
+    print-color-adjust: exact;
+    overflow: hidden; /* Prevent content overflow within the panel */
   }
 
-  .right-panel-print {
-    width: 66.6667%; /* Maintain 2/3 width */
-    height: 100%; /* Ensure it takes full height */
+  .estimate-container .right-panel {
+    width: 66.6667% !important; /* Maintain 2/3 width for print */
+    height: auto; /* Allow height to be determined by content */
     /* Adjust padding/margins inside if needed for print */
-    padding: 30px; /* Example: reduced padding for print if needed */
+    padding: 30px !important; /* Ensure consistent padding for print */
   }
 
   /* Hide elements you don't want to print */
@@ -75,24 +126,26 @@
     display: none !important;
   }
 
-  /* Further adjustments for text and spacing */
+  /* Further adjustments for text and spacing to ensure legibility on print */
   h1 {
-    font-size: 2.5rem !important; /* Adjust font size for print legibility */
+    font-size: 2.2rem !important; /* Slightly smaller for print legibility */
   }
   p {
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important; /* Standard print text size */
+    line-height: 1.4;
   }
   table {
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important; /* Standard print table text size */
+  }
+  th, td {
+    padding: 0.25rem 0.5rem !important; /* Reduce table padding for print density */
   }
 
-  /* Ensure background images are printed */
-  .left-panel-print {
-      background-image: var(--bg-image); /* Use a CSS variable if you pass it */
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+  /* Page break control: Add rules to prevent breaking inside critical blocks */
+  .estimate-container div,
+  .estimate-container table,
+  .estimate-container ul,
+  .estimate-container .totals-section { /* Add specific classes for your sections */
+    break-inside: avoid;
   }
-  /* If the image is applied directly via style, it should generally print */
-
-  /* You might need to add more specific overrides for any other elements that don't look right */
 }

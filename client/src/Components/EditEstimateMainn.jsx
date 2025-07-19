@@ -855,7 +855,7 @@ const EditEstimateMainn = () => {
           <button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="flex-1 bg-gradient-to-r hover:from-pink-600 hover:to-purple-600 hover:scale-105 text-white py-4 px-6 rounded-2xl font-bold hover:bg-gradient-to-r from-purple-600  hover: from-pink-600 to-pink-600  transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-gradient-to-r hover:from-pink-600 hover:to-purple-600 hover:scale-105 text-white py-4 px-6 rounded-2xl font-bold hover:bg-gradient-to-r from-purple-600  hover:from-pink-600 to-pink-600  transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={20} />
             {isLoading ? "Updating..." : "Update Estimate"}
