@@ -1,3 +1,5 @@
+
+// export default ThemeMinimal;
 import React, { useRef, useState } from "react";
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
@@ -6,6 +8,7 @@ import { useUser } from '../../context/UserContext';
 
 // Import the utility functions for S3 upload and database update
 import { uploadPdfToS3Backend, updateEstimateInDb } from "../../Utils/pdfShareUtils";
+
 
 const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
   const { userData, loading: userLoading } = useUser();
@@ -141,25 +144,19 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
     }
 
     // Apply temporary styles for PDF capture to ensure A4 dimensions and desktop-like layout
+    // These styles will ensure html2canvas captures it as a full-width A4 document.
     setCaptureStyles({
       width: '210mm', // A4 width
-      // height: '297mm', // Removed to allow content to dictate height, for multi-page
       position: 'absolute',
       left: '-9999px', // Move off-screen to avoid visual flicker during capture
       top: '-9999px',
-      // Ensure flex items don't wrap on small screens during capture
+      // Ensure flex items maintain row layout during capture
       flexDirection: 'row', // Force row layout for desktop-like PDF
       alignItems: 'stretch', // Ensure equal height columns
       boxShadow: 'none', // Remove shadow for capture
       borderRadius: '0', // Remove border-radius for capture
-      // Important for background images in html2canvas
-      '-webkit-print-color-adjust': 'exact',
+      '-webkit-print-color-adjust': 'exact', // Important for background images in html2canvas
       'print-color-adjust': 'exact',
-      // Also apply these to the direct child if it's the flex container
-      '& > div': {
-        flexDirection: 'row',
-        alignItems: 'stretch',
-      }
     });
 
     // Wait for styles to apply (brief timeout)
@@ -167,11 +164,9 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
 
     try {
       const canvas = await html2canvas(input, {
-        scale: 3, // Higher scale for better resolution, typically 2 or 3
+        scale: 2, // Higher scale for better resolution, typically 2 or 3
         useCORS: true, // Important for images loaded from external sources (e.g., logoUrl, background)
         logging: false, // Disable html2canvas logging
-        // windowWidth: 794, // Simulate A4 width (210mm at 96dpi, but scale affects this more directly)
-        // windowHeight: 1123, // Simulate A4 height
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -238,8 +233,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       setModalType("error");
     } finally {
       setIsProcessingPdf(false);
-      // set timeout to avoid message disappearing too quickly if it's a success
-      if (modalType === "success" || modalType === "error") {
+      if (modalType === "success" || modalType === "error" || modalType === "info") {
         setTimeout(() => setModalMessage(""), 3000);
       }
     }
@@ -323,8 +317,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       setModalType("error");
     } finally {
       setIsProcessingPdf(false);
-      // set timeout to avoid message disappearing too quickly if it's a success
-      if (modalType === "success" || modalType === "error") {
+      if (modalType === "success" || modalType === "error" || modalType === "info") {
         setTimeout(() => setModalMessage(""), 3000);
       }
     }
@@ -384,7 +377,8 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       <LoadingModal message={modalMessage} type={modalType} />
 
       {/* Top Buttons Container - Excluded from PDF print */}
-      <div className="w-full max-w-4xl flex justify-between items-center mb-4 no-print">
+      {/* sm:p-6 ensures reasonable padding on larger screens, p-4 for small mobile */}
+      <div className="w-full max-w-4xl flex justify-between items-center mb-4 no-print p-4 sm:p-0">
         <button
           onClick={handleGoBack}
           className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center text-gray-700"
@@ -415,13 +409,14 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       </div>
 
       {/* Main content container for preview and PDF generation */}
-      {/* Apply captureStyles directly as inline styles for the ref element */}
-      <div ref={printRef} className="w-full max-w-4xl mx-auto font-sans text-gray-900 bg-white shadow-lg rounded-lg overflow-hidden md:shadow-none md:rounded-none estimate-container" style={captureStyles}>
-        {/* Responsive layout for flex container */}
-        <div className="flex flex-col md:flex-row">
+      {/* The `estimate-container` will have a fixed width in CSS */}
+      <div ref={printRef} className="mx-auto font-sans text-gray-900 bg-white shadow-lg rounded-lg overflow-hidden md:shadow-none md:rounded-none estimate-container" style={captureStyles}>
+        {/* Force flex-row for all screen sizes */}
+        <div className="flex flex-row">
           {/* Left Section (Image and Contact Info) */}
+          {/* Force w-1/3 for all screen sizes */}
           <div
-            className="relative w-full md:w-1/3 bg-cover bg-center left-panel min-h-[300px] md:min-h-0"
+            className="relative w-1/3 bg-cover bg-center left-panel min-h-[300px]"
             style={{
               backgroundImage: `url('/couplephoto.jpg')`, // Ensure this path is correct
             }}
@@ -540,7 +535,8 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
           </div>
 
           {/* Right Section (Estimate Details) */}
-          <div className="w-full md:w-2/3 p-6 sm:p-12 right-panel">
+          {/* Force w-2/3 for all screen sizes */}
+          <div className="w-2/3 p-6 sm:p-12 right-panel">
             {/* IMPROVED HEADER SECTION */}
             <div className="flex flex-col items-center mb-6 sm:mb-8">
               <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-1 sm:mb-2 text-center uppercase">
@@ -550,7 +546,8 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
                 {estimateData.functionName}
               </p>
 
-              {/* Responsive grid for details */}
+              {/* Grid for details - keep it responsive as it's within the right panel */}
+              {/* You can keep sm:grid-cols-2 here, as it's internal to the right panel and looks fine */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-8 w-full">
                 {/* Left Column: Estimate Details */}
                 <div className="text-left text-sm sm:text-base mb-4 sm:mb-0">
@@ -560,7 +557,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
                   {estimateData.startDate && (
                     <p className="text-gray-700 mb-1">
                       <span className="font-semibold">Event Dates:</span> {formatDate(estimateData.startDate)}
-                      {estimateData.endDate && ` - ${formatDate(estimateData.endDate)}`}
+                      {estimateData.endDate && ` - ${formatDate(estimate.endDate)}`}
                     </p>
                   )}
                   {estimateData.location && (

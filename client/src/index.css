@@ -3,8 +3,6 @@
 /* @import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Volkhov:ital,wght@0,400;0,700;1,400;1,700&display=swap'); */
 /* Custom font classes */
 
-
-
 /* Custom font classes (keep these if you use them) */
 .font-poppins {
   font-family: 'Poppins', sans-serif;
@@ -27,38 +25,45 @@
   color: #69B264;
 }
 
-/* Default styles for the estimate container (on-screen display) */
+/* Default styles for the estimate container (on-screen display for ALL devices) */
+.estimate-container {
+  /* This is the key change to make it look like desktop on mobile.
+     A4 width is 210mm. At 96 DPI, this is approximately 794px.
+     You might need to adjust this pixel value slightly for optimal visual fit,
+     but this will prevent reflow on smaller screens. */
+  width: 794px; /* Fixed width, approximating A4 landscape for screen view */
+  /* Remove max-w-4xl from JSX for this to be effective, or set it here. */
+  /* This margin will center it on larger screens. */
+  margin: 0 auto;
+  box-shadow: none; /* Keep consistent with print design for on-screen */
+  border-radius: 0; /* Keep consistent with print design for on-screen */
+  /* Allow overflow so if content is wider than screen, horizontal scrollbar appears */
+  overflow: visible; /* Changed from hidden so content isn't clipped */
+}
+
+/* Ensure the direct child div is always flex-row with appropriate widths */
 .estimate-container > div {
-  /* Default to column on small screens */
-  flex-direction: column;
+  display: flex; /* Make sure it's a flex container */
+  flex-direction: row; /* Always row, no matter the screen size */
+  align-items: stretch; /* Ensures equal height columns */
 }
 
 .estimate-container .left-panel {
-  width: 100%; /* Full width on mobile */
-  min-height: 300px; /* Ensure it has some height on mobile */
+  width: 33.3333%; /* 1/3 width for all screens */
+  min-height: 300px; /* Keep a minimum height for the image area */
+  /* Add specific padding for consistent look */
+  padding: 1.5rem; /* Or adjust to match desktop p-6 */
 }
 
 .estimate-container .right-panel {
-  width: 100%; /* Full width on mobile */
-  padding: 1.5rem; /* Adjust padding for mobile */
+  width: 66.6667%; /* 2/3 width for all screens */
+  /* Consistent padding for all screens */
+  padding: 3rem; /* Based on sm:p-12 from desktop, but apply universally */
 }
 
-/* Desktop styles for the estimate container (min-width: 768px for md breakpoint) */
-@media (min-width: 768px) {
-  .estimate-container > div {
-    /* Revert to row on desktop */
-    flex-direction: row;
-  }
-  .estimate-container .left-panel {
-    width: 33.3333%; /* 1/3 width on desktop */
-    min-height: auto; /* Allow height to adjust */
-  }
-  .estimate-container .right-panel {
-    width: 66.6667%; /* 2/3 width on desktop */
-    padding: 3rem; /* Larger padding for desktop */
-  }
-}
-
+/* You can still use responsive classes for *internal* elements if their layout within
+   the fixed columns should change (e.g., how the text wraps or grid displays).
+   However, the main two-column layout is now fixed. */
 
 /* Print Media Queries - ONLY for actual browser printing (Ctrl+P) */
 @media print {
@@ -76,23 +81,20 @@
     print-color-adjust: exact;
     width: 210mm; /* Force A4 width for the body in print */
     min-height: 297mm; /* Force A4 height for the body in print */
-    /* Use flexbox to ensure content flows correctly within A4 pages if it gets long */
-    display: flex;
+    display: flex; /* Use flexbox to ensure content flows correctly within A4 pages if it gets long */
     flex-direction: column;
   }
 
   /* Your main document wrapper should be full width for print */
   .estimate-container {
     width: 210mm; /* A4 width */
-    /* Remove explicit height to allow content to flow to new pages */
-    /* height: 297mm; */
+    max-width: none; /* Remove any max-width constraints for print */
     margin: 0; /* No auto margin in print mode for precise control */
     box-shadow: none; /* Remove box shadow for print */
     border: none; /* Remove border for print */
     overflow: visible; /* Allow content to overflow and trigger page breaks */
     display: flex; /* Use flex to control internal layout */
-    flex-direction: column; /* Stack content vertically */
-    /* Ensure no breaks inside elements that shouldn't break */
+    flex-direction: column; /* Stack content vertically for proper print flow */
     break-inside: avoid;
   }
 
@@ -100,14 +102,13 @@
   .estimate-container > div { /* This targets the direct child div which is flex */
     flex: 0 0 auto; /* Prevent growing/shrinking, take content size */
     display: flex; /* Maintain flex for left/right */
-    flex-direction: row !important; /* Force row for print, overriding mobile */
+    flex-direction: row !important; /* Force row for print, overriding any on-screen overrides */
     align-items: stretch; /* Ensure columns take equal height */
   }
 
   .estimate-container .left-panel {
     width: 33.3333% !important; /* Maintain 1/3 width for print */
-    /* Remove min-height or set to auto for print */
-    min-height: auto !important;
+    min-height: auto !important; /* Remove min-height or set to auto for print */
     height: auto; /* Allow height to be determined by content */
     -webkit-print-color-adjust: exact; /* Crucial for background images */
     print-color-adjust: exact;
@@ -117,7 +118,6 @@
   .estimate-container .right-panel {
     width: 66.6667% !important; /* Maintain 2/3 width for print */
     height: auto; /* Allow height to be determined by content */
-    /* Adjust padding/margins inside if needed for print */
     padding: 30px !important; /* Ensure consistent padding for print */
   }
 
@@ -145,7 +145,13 @@
   .estimate-container div,
   .estimate-container table,
   .estimate-container ul,
-  .estimate-container .totals-section { /* Add specific classes for your sections */
+  .estimate-container .flex.flex-col.items-end { /* Targeting the totals section by its classes */
     break-inside: avoid;
+  }
+
+  /* Ensure background colors and images print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 }
