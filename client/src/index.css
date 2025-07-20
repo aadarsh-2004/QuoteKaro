@@ -38,7 +38,9 @@
   box-shadow: none; /* Keep consistent with print design for on-screen */
   border-radius: 0; /* Keep consistent with print design for on-screen */
   /* Allow overflow so if content is wider than screen, horizontal scrollbar appears */
-  overflow: visible; /* Changed from hidden so content isn't clipped */
+  /* IMPORTANT CHANGE: Add overflow-y: auto; or overflow: auto; to allow vertical scrolling */
+  overflow-x: auto; /* Allow horizontal scrolling if content exceeds fixed width */
+  overflow-y: auto; /* Allow vertical scrolling if content exceeds viewport height */
 }
 
 /* Ensure the direct child div is always flex-row with appropriate widths */
@@ -62,8 +64,8 @@
 }
 
 /* You can still use responsive classes for *internal* elements if their layout within
-   the fixed columns should change (e.g., how the text wraps or grid displays).
-   However, the main two-column layout is now fixed. */
+    the fixed columns should change (e.g., how the text wraps or grid displays).
+    However, the main two-column layout is now fixed. */
 
 /* Print Media Queries - ONLY for actual browser printing (Ctrl+P) */
 @media print {
