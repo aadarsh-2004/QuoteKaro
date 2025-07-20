@@ -8,8 +8,25 @@ const connectionDB = require('./config/db')
 dotenv.config()
 const app = express();
 
+const allowedOrigins = ['https://www.quotekaro.in', 'http://localhost:5173','https://quotekaro.in'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'firebaseUID'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 // middleware
-app.use(cors({origin: '*'}));
+// app.use(cors({origin: '*'}));
 app.use(express.json({ limit: '50mb' })); // IMPORTANT: Increase limit for large PDF base64 strings
 app.use(express.urlencoded({ limit: '50mb', extended: true })); // For URL-encoded bodies if needed
 
