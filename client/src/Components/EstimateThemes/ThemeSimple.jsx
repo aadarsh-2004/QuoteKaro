@@ -390,7 +390,7 @@ const ThemeSimple = ({ estimate, studio, onGoBack }) => {
             <div className="w-full max-w-4xl flex justify-between items-center mb-4 no-print p-4 sm:p-0">
         <button
           onClick={handleGoBack}
-          className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center text-gray-700"
+          className="p-2   rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center text-gray-700"
           aria-label="Go back"
         >
           <FaArrowLeft size={20} />
@@ -425,7 +425,7 @@ const ThemeSimple = ({ estimate, studio, onGoBack }) => {
 
             <div
                 ref={printRef}
-                className="w-[210mm] mx-auto bg-white text-gray-800 shadow-md rounded-lg overflow-hidden flex flex-col" // Changed to flex-col for stack layout
+                className="pl-42 md:p-0 w-[210mm] mx-auto bg-white text-gray-800 shadow-md rounded-lg overflow-hidden flex flex-col" // Changed to flex-col for stack layout
                 style={captureStyles}
             >
                 {/* Header Section */}

@@ -427,7 +427,7 @@ const ThemeVintage = ({ estimate, studio, onGoBack }) => {
             {/* The outer div ensures the A4 size and provides the main padding/margins for the preview */}
             {/* The internal 'content-wrapper' div handles the actual content's padding */}
             <div
-                className="mx-auto bg-orange-50/60  p-4 font-['Montserrat'] text-gray-800 shadow-lg rounded-lg"
+                className="mx-auto bg-orange-50/60   p-4 font-['Montserrat'] text-gray-800 shadow-lg rounded-lg"
                 style={{
                     width: '210mm', // Fixed A4 width for display on all devices
                     minHeight: '297mm', // Ensure at least one A4 height for consistent preview
@@ -438,7 +438,7 @@ const ThemeVintage = ({ estimate, studio, onGoBack }) => {
                     ref={printRef}
                     // This is the inner div whose content will be captured.
                     // It has the *actual* content padding that you want to see in the PDF margins.
-                    className="creative-studio-content-wrapper bg-orange-50/60 p-8 print:p-8" // Increased padding to p-8 for better visual margins, added print:p-8
+                    className="creative-studio-content-wrapper bg-orange-50/60 pl-42  md:p-8 print:p-8" // Increased padding to p-8 for better visual margins, added print:p-8
                     // The print:p-8 class is important here to ensure the padding is applied when printing.
                 >
                     <div className="border-t-2 border-b border-[#8B7355] mb-4 print:mb-4"></div>

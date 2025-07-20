@@ -506,7 +506,7 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
       {/* The `estimate-container` will have a fixed width in CSS */}
       <div
         ref={printRef}
-        className="mx-auto font-sans text-gray-900 bg-white shadow-lg rounded-lg overflow-hidden md:shadow-none md:rounded-none estimate-container"
+        className="pl-40 md:p-0 mx-auto font-sans text-gray-900 bg-white shadow-lg rounded-lg overflow-hidden md:shadow-none md:rounded-none estimate-container"
         style={captureStyles}
       >
         {/* Force flex-row for all screen sizes */}
