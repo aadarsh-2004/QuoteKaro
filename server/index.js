@@ -8,7 +8,7 @@ const connectionDB = require('./config/db')
 dotenv.config()
 const app = express();
 
-const allowedOrigins = ['https://www.quotekaro.in', 'http://localhost:5173','https://quotekaro.in'];
+const allowedOrigins = ['https://www.quotekaro.in', 'http://localhost:5173' ,'https://quotekaro.in'];
 const corsOptions = {
   origin: function (origin, callback) {
     // allow requests with no origin (like mobile apps or curl requests)

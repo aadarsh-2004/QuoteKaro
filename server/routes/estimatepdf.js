@@ -47,9 +47,9 @@ router.post('/generate-s3-presigned-url', async (req, res) => {
     const params = {
       Bucket: S3_BUCKET_NAME,
       Key: s3Key,
-      Expires: 60 * 5, // URL expires in 5 minutes (adjust as needed, e.g., 10 minutes)
-      ContentType: contentType, // Important: Must match the Content-Type of the direct PUT request from frontend
-      ACL: 'public-read' // Make the uploaded file publicly accessible
+      Expires: 60 * 5, 
+      ContentType: 'application/pdf',
+      ACL: 'public-read' 
     };
 
     // Generate the presigned URL for a PUT operation
@@ -70,10 +70,6 @@ router.post('/generate-s3-presigned-url', async (req, res) => {
   }
 });
 
-// ====================================================================================================
-// Existing: Endpoint to UPDATE the estimate record in MongoDB with the S3 PDF URL
-// This endpoint remains the same as it receives the final URL, not the file data.
-// ====================================================================================================
 router.put('/:id/update-pdf-url', async (req, res) => {
   const { id } = req.params;
   const { pdfUrl, status, firebaseUID } = req.body;
@@ -109,19 +105,6 @@ router.put('/:id/update-pdf-url', async (req, res) => {
     res.status(500).json({ message: 'Internal server error while updating estimate.' });
   }
 });
-
-
-// ====================================================================================================
-// REMOVED/DEPRECATED: The old /upload-pdf-s3 endpoint that received base64 data.
-// You should remove or comment out your previous router.post('/upload-pdf-s3', ...) here.
-// If you still have it, it will cause conflicts or allow the old, problematic upload method.
-// Example of what to remove:
-/*
-router.post('/upload-pdf-s3', async (req, res) => {
-  // ... old base64 upload logic ...
-});
-*/
-// ====================================================================================================
 
 
 module.exports = router;
