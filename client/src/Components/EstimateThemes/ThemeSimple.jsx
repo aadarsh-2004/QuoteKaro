@@ -425,7 +425,7 @@ const ThemeSimple = ({ estimate, studio, onGoBack }) => {
 
             <div
                 ref={printRef}
-                className="pl-42 md:p-0 w-[210mm] mx-auto bg-white text-gray-800 shadow-md rounded-lg overflow-hidden flex flex-col" // Changed to flex-col for stack layout
+                className="pl-48 md:p-0 w-[210mm] mx-auto bg-white text-gray-800 shadow-md rounded-lg overflow-hidden flex flex-col" // Changed to flex-col for stack layout
                 style={captureStyles}
             >
                 {/* Header Section */}
