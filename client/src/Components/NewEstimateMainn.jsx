@@ -36,35 +36,6 @@ const NewEstimateMainn = () => {
   // State to hold the ID of the newly created estimate, enabling the "View & Share" button
   const [newlyCreatedEstimateId, setNewlyCreatedEstimateId] = useState(null);
 
-  // Populate notes from userData when available
-  useEffect(() => {
-    if (userData && userData.notes) {
-      setFormData((prev) => ({
-        ...prev,
-        notes: userData.notes,
-      }));
-    }
-  }, [userData]);
-
-  const [services, setServices] = useState([
-    {
-      id: 1,
-      serviceName: "",
-      description: "", // Initialized here
-      quantity: 1,
-      pricePerUnit: 0,
-      total: 0,
-      isCustomInput: false,
-    },
-  ]);
-
-  const [totals, setTotals] = useState({
-    subtotal: 0,
-    discount: 0,
-    discountType: "percentage", // 'percentage' or 'amount'
-    netTotal: 0,
-  });
-
   // Use user's custom services for options
   const userServicesOptions = useMemo(() => {
     const services =
@@ -75,6 +46,39 @@ const NewEstimateMainn = () => {
       })) || [];
     return services.sort((a, b) => a.name.localeCompare(b.name));
   }, [userData]);
+
+  // Populate notes from userData when available
+  useEffect(() => {
+    if (userData && userData.notes) {
+      setFormData((prev) => ({
+        ...prev,
+        notes: userData.notes,
+      }));
+    }
+  }, [userData]);
+
+  // Initialize services state
+  const [services, setServices] = useState([]);
+
+  // Effect to manage initial service line based on user's predefined services
+  useEffect(() => {
+    if (!loading && userData) {
+      if (userServicesOptions.length === 0 && services.length > 0) {
+        // If user has no predefined services, clear any existing service lines
+        setServices([]);
+      } else if (userServicesOptions.length > 0 && services.length === 0) {
+        // If user has predefined services but no service lines are currently displayed, add one
+        addService();
+      }
+    }
+  }, [loading, userData, userServicesOptions.length, services.length]); // Added services.length as dependency
+
+  const [totals, setTotals] = useState({
+    subtotal: 0,
+    discount: 0,
+    discountType: "percentage", // 'percentage' or 'amount'
+    netTotal: 0,
+  });
 
   const calculateTotals = () => {
     const subtotal = services.reduce(
@@ -174,7 +178,6 @@ const NewEstimateMainn = () => {
       services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
     setServices((prev) => [
       {
-        // ⭐ MODIFICATION HERE: Prepend the new service
         id: newId,
         serviceName: "",
         description: "", // Added description here for new service
@@ -188,7 +191,7 @@ const NewEstimateMainn = () => {
   };
 
   const removeService = (idToRemove) => {
-    if (services.length > 1) {
+    if (services.length > 0) { // Allow removing even if it's the last one
       setServices((prev) =>
         prev.filter((service) => service.id !== idToRemove)
       );
@@ -471,164 +474,187 @@ const NewEstimateMainn = () => {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Services</h2>
             </div>
-            <button
-              onClick={addService}
-              className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
-            >
-              <Plus size={18} />
-              Add Service
-            </button>
+            {/* Only show 'Add Service' button if there are user services or if it's the custom input mode for the first service */}
+            {userServicesOptions.length > 0 && (
+              <button
+                onClick={addService}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+              >
+                <Plus size={18} />
+                Add Service
+              </button>
+            )}
           </div>
 
-          <div className="space-y-4">
-            {services.map((service, index) => (
-              <div
-                key={service.id}
-                className="bg-gradient-to-r from-gray-50 to-purple-50/30 p-4 rounded-2xl border border-gray-100"
+          {/* Conditional rendering for services section */}
+          {userServicesOptions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-2xl border border-gray-200 text-center">
+              <p className="text-lg text-gray-700 mb-4 font-semibold">
+                You haven't added any services yet.
+              </p>
+              <p className="text-md text-gray-500 mb-6">
+                Define your frequently used services in settings to quickly create estimates.
+              </p>
+              <button
+                onClick={() => navigate("/settings/preferences")}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
               >
-                {/* Changed from grid to flex for responsiveness */}
-                <div className="flex flex-col">
-                  {/* Service Name and Description in one row on desktop */}
-                  <div>
-                    <div className="flex flex-col md:flex-row gap-2">
-                      {/* Service Name */}
-                      <div className="w-full md:w-1/2">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Service Name
-                        </label>
-                        {service.isCustomInput ? (
-                          <input
-                            type="text"
-                            value={service.serviceName}
-                            onChange={(e) =>
-                              handleServiceChange(
-                                service.id,
-                                "serviceName",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Type custom service name"
-                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          />
-                        ) : (
-                          <select
-                            value={service.serviceName}
-                            onChange={(e) =>
-                              handleServiceChange(
-                                service.id,
-                                "serviceName",
-                                e.target.value
-                              )
-                            }
-                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          >
-                            <option value="">Select a service</option>
-                            <option
-                              value="custom_input"
-                              className="font-bold text-purple-700 bg-purple-50"
+                <Plus size={18} />
+                Add Services Now
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {services.map((service, index) => (
+                <div
+                  key={service.id}
+                  className="bg-gradient-to-r from-gray-50 to-purple-50/30 p-4 rounded-2xl border border-gray-100"
+                >
+                  {/* Changed from grid to flex for responsiveness */}
+                  <div className="flex flex-col">
+                    {/* Service Name and Description in one row on desktop */}
+                    <div>
+                      <div className="flex flex-col md:flex-row gap-2">
+                        {/* Service Name */}
+                        <div className="w-full md:w-1/2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Service Name
+                          </label>
+                          {service.isCustomInput ? (
+                            <input
+                              type="text"
+                              value={service.serviceName}
+                              onChange={(e) =>
+                                handleServiceChange(
+                                  service.id,
+                                  "serviceName",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Type custom service name"
+                              className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            />
+                          ) : (
+                            <select
+                              value={service.serviceName}
+                              onChange={(e) =>
+                                handleServiceChange(
+                                  service.id,
+                                  "serviceName",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                             >
-                              --- Write new service ---
-                            </option>
-                            {userServicesOptions.map((option) => (
-                              <option key={option.name} value={option.name}>
-                                {option.name}{" "}
-                                {option.price > 0
-                                  ? `(₹${option.price.toLocaleString()})`
-                                  : ""}
+                              <option value="">Select a service</option>
+                              {/* HIGHLIGHTED OPTION */}
+                              <option
+                                value="custom_input"
+                                className="font-bold  text-md md:text-lg  text-purple-700 bg-purple-50" // Added styling here
+                              >
+                                --- Write new service ---
                               </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
+                              {userServicesOptions.map((option) => (
+                                <option key={option.name} value={option.name}>
+                                  {option.name}{" "}
+                                  {option.price > 0
+                                    ? `(₹${option.price.toLocaleString()})`
+                                    : ""}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
 
-                      {/* Service Description */}
-                      <div className="w-full md:w-1/2">
+                        {/* Service Description */}
+                        <div className="w-full md:w-1/2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Service Description (Optional)
+                          </label>
+                          <textarea
+                            value={service.description} // Correctly bound to 'description'
+                            onChange={(e) =>
+                              handleServiceChange(
+                                service.id,
+                                "description",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Details for this specific service..."
+                            rows={2}
+                            className="w-full p-1 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                          ></textarea>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quantity, Price per Unit, Total + Remove Button in one row with gap */}
+                    <div className="flex flex-col md:flex-row gap-2 mt-4">
+                      {/* Quantity */}
+                      <div className="w-full md:w-1/3">
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Service Description (Optional)
+                          Quantity
                         </label>
-                        <textarea
-                          value={service.description} // Correctly bound to 'description'
+                        <input
+                          type="number"
+                          min="1"
+                          value={service.quantity}
                           onChange={(e) =>
                             handleServiceChange(
                               service.id,
-                              "description",
-                              e.target.value
+                              "quantity",
+                              parseInt(e.target.value) || 1
                             )
                           }
-                          placeholder="Details for this specific service..."
-                          rows={2}
-                          className="w-full p-1 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
-                        ></textarea>
+                          className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        />
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Quantity, Price per Unit, Total + Remove Button in one row with gap */}
-                  <div className="flex flex-col md:flex-row gap-2 mt-4">
-                    {/* Quantity */}
-                    <div className="w-full md:w-1/3">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Quantity
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={service.quantity}
-                        onChange={(e) =>
-                          handleServiceChange(
-                            service.id,
-                            "quantity",
-                            parseInt(e.target.value) || 1
-                          )
-                        }
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      />
-                    </div>
-
-                    {/* Price per Unit */}
-                    <div className="w-full md:w-1/3">
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Price per Unit
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={service.pricePerUnit}
-                        onChange={(e) =>
-                          handleServiceChange(
-                            service.id,
-                            "pricePerUnit",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      />
-                    </div>
-
-                    {/* Total + Remove Button */}
-                    <div className="flex items-end w-full md:w-1/3 gap-2">
-                      <div className="flex-1">
+                      {/* Price per Unit */}
+                      <div className="w-full md:w-1/3">
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Total
+                          Price per Unit
                         </label>
-                        <div className="w-full p-3 bg-purple-50 border border-purple-200 rounded-xl font-bold text-purple-600">
-                          ₹{service.total.toLocaleString()}
-                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={service.pricePerUnit}
+                          onChange={(e) =>
+                            handleServiceChange(
+                              service.id,
+                              "pricePerUnit",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        />
                       </div>
-                      {services.length > 1 && (
-                        <button
-                          onClick={() => removeService(service.id)}
-                          className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
+
+                      {/* Total + Remove Button */}
+                      <div className="flex items-end w-full md:w-1/3 gap-2">
+                        <div className="flex-1">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Total
+                          </label>
+                          <div className="w-full p-3 bg-purple-50 border border-purple-200 rounded-xl font-bold text-purple-600">
+                            ₹{service.total.toLocaleString()}
+                          </div>
+                        </div>
+                        {services.length > 0 && ( // Allow removing even if it's the last one, as we will show the "add service" message
+                          <button
+                            onClick={() => removeService(service.id)}
+                            className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Totals Section */}

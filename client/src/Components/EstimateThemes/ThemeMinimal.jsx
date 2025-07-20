@@ -99,23 +99,22 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
   };
 
   const estimateData = { ...defaultEstimate, ...estimate };
-  const studioData = {
-    name: "Perfect Moment",
-    phone: "(123) 456-7890",
-    email: "info@perfectmoment.com",
-    address: {
-      d_address: "123 Photography Lane",
-      city: "Amityville",
-      state: "ST",
-      pincode: "12345",
-    },
-    logoUrl: null,
-    website: null,
-    socialLinks: { youtube: null, instagram: null, facebook: null },
-    policies: null,
-    notes: null,
-    ...studio,
-  };
+ const studioData = {
+        name: userData?.studioName || "Perfect Moment", // Use userData.studioName
+        phone: userData?.phoneNumber || "(123) 456-7890", // Use userData.phoneNumber
+        email: userData?.email || "info@perfectmoment.com",
+        address: userData?.address || { d_address: "123 Photography Lane", city: "Amityville", state: "ST", pincode: "12345" },
+        logoUrl: userData?.logoUrl || null,
+        website: userData?.website || null,
+        socialLinks: {
+            youtube: userData?.socialLinks?.youtube || null,
+            instagram: userData?.socialLinks?.instagram || null,
+            facebook: userData?.socialLinks?.facebook || null,
+        },
+        policies: userData?.policies || null, // Use userData.policies
+        notes: userData?.notes || null, // Use userData.notes
+        ...studio, // Any specific studio data passed as prop will override
+    };
 
   const finalNotes = estimateData.notes;
 
@@ -312,106 +311,125 @@ const ThemeMinimal = ({ estimate, studio, onGoBack }) => {
     }
   };
 
-  const handleShare = async () => {
-    if (isProcessingPdf) return;
-    setIsProcessingPdf(true);
-    setModalMessage("Preparing estimate for sharing...");
-    setModalType("loading");
 
-    try {
-      // 1. Generate PDF Blob from the current view
-      const pdfBlob = await generatePdfBlobFromCurrentView();
-      if (!pdfBlob) {
-        return; // Exit if PDF generation failed (message already set)
-      }
+  const buildWhatsAppMessage = (estimate, url) => {
+        // Use studioData.name for consistency, provide a fallback if it's empty or placeholder
+        const studioDisplayName = studioData.name && studioData.name !== "Your Studio Name" ? studioData.name : "our studio";
 
-      // 2. Upload PDF to S3 via Backend (using the imported utility function)
-      const pdfUrl = await uploadPdfToS3Backend(
-        pdfBlob,
-        estimateData._id,
-        estimateData.clientName,
-        estimateData.functionName,
-        firebaseUID,
-        setModalMessage,
-        setModalType
-      );
-      if (!pdfUrl) {
-        return; // Exit if upload failed (message already set)
-      }
+        let message = `*Hello ${estimate.clientName}!* 👋\n\n`;
+        message += `We've prepared a detailed quotation for you from *${studioDisplayName}*.\n\n`;
+        message += `Please review it here:\n🔗 ${url}\n\n`; // The direct link
+        message += `Your Estimate ID: *${estimate._id}*\n\n`;
+        message += `Feel free to discuss or request any revisions. We're happy to work with you and look forward to capturing your perfect moments!\n\n`;
 
-      // 3. Update Estimate Model in MongoDB via Backend (using the imported utility function)
-      const dbUpdateSuccess = await updateEstimateInDb(
-        estimateData._id,
-        pdfUrl,
-        firebaseUID,
-        setModalMessage,
-        setModalType
-      );
-      if (!dbUpdateSuccess) {
-        return; // Exit if DB update failed (message already set)
-      }
-
-      // 4. Share the PDF URL via Web Share API or WhatsApp
-      const shareTitle = `Estimate from ${studioData.studioName}`;
-      const whatsappMessage = `Hi ${estimateData.clientName},\n\nHere's your estimate from ${studioData.studioName}:\n${pdfUrl}\n\nEstimate ID: ${estimateData._id}\n\nLooking forward to working with you!`;
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: shareTitle,
-            text: whatsappMessage,
-            url: pdfUrl,
-          });
-          console.log("Content shared successfully via Web Share API");
-          setModalMessage("Estimate shared successfully ✅");
-          setModalType("success");
-        } catch (error) {
-          if (error.name === "AbortError") {
-            console.log("Web Share API cancelled by user.");
-            setModalMessage("Sharing cancelled.");
-            setModalType("info"); // User cancelled, not an error
-          } else {
-            console.error("Error sharing via Web Share API:", error);
-            setModalMessage(
-              "Failed to share via Web Share API. Opening WhatsApp directly."
-            );
-            setModalType("error");
-            window.open(
-              `https://wa.me/${
-                estimateData.phoneNumber
-              }?text=${encodeURIComponent(whatsappMessage)}`,
-              "_blank"
-            );
-          }
+        // Add social media links if present and valid (not default placeholders or empty strings)
+        const socialLinks = [];
+        if (studioData.socialLinks.instagram && !studioData.socialLinks.instagram.includes("instagram.com/yourstudio") && studioData.socialLinks.instagram !== "") {
+            socialLinks.push(`📸 Instagram: ${studioData.socialLinks.instagram}`);
         }
-      } else {
-        // Fallback for browsers that do not support Web Share API
-        setModalMessage(
-          "Web Share API not supported. Opening WhatsApp directly."
-        );
-        setModalType("info"); // Informational message
-        window.open(
-          `https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(
-            whatsappMessage
-          )}`,
-          "_blank"
-        );
-      }
-    } catch (error) {
-      console.error("Error during share process:", error);
-      setModalMessage(`Failed to share estimate: ${error.message}`);
-      setModalType("error");
-    } finally {
-      setIsProcessingPdf(false);
-      if (
-        modalType === "success" ||
-        modalType === "error" ||
-        modalType === "info"
-      ) {
-        setTimeout(() => setModalMessage(""), 3000);
-      }
-    }
-  };
+        if (studioData.socialLinks.youtube && !studioData.socialLinks.youtube.includes("youtube.com/yourstudio") && studioData.socialLinks.youtube !== "") {
+            socialLinks.push(`▶️ YouTube: ${studioData.socialLinks.youtube}`);
+        }
+        if (studioData.socialLinks.facebook && !studioData.socialLinks.facebook.includes("facebook.com/yourstudio") && studioData.socialLinks.facebook !== "") {
+            socialLinks.push(`👍 Facebook: ${studioData.socialLinks.facebook}`);
+        }
+        if (studioData.website && !studioData.website.includes("quotekaro.in") && studioData.website !== "") {
+            socialLinks.push(`🌐 Website: ${studioData.website}`);
+        }
+
+        if (socialLinks.length > 0) {
+            message += `\nConnect with us:\n${socialLinks.join('\n')}\n`;
+        }
+
+        message += `\nThank you for choosing ${studioDisplayName}!\n`;
+        return message;
+    };
+  const handleShare = async () => {
+          if (isProcessingPdf) return;
+          setIsProcessingPdf(true);
+          setModalMessage("Preparing estimate for sharing...");
+          setModalType("loading");
+  
+          try {
+              // 1. Generate PDF Blob from the current view
+              const pdfBlob = await generatePdfBlobFromCurrentView();
+              if (!pdfBlob) {
+                  setIsProcessingPdf(false);
+                  return;
+              }
+  
+              // 2. Upload PDF to S3 via Backend
+              const pdfUrl = await uploadPdfToS3Backend(
+                  pdfBlob,
+                  estimateData._id,
+                  estimateData.clientName,
+                  estimateData.functionName,
+                  userData.firebaseUID,
+                  setModalMessage,
+                  setModalType
+              );
+              if (!pdfUrl) {
+                  setIsProcessingPdf(false);
+                  return;
+              }
+  
+              // 3. Update Estimate Model in MongoDB via Backend
+              const dbUpdateSuccess = await updateEstimateInDb(
+                  estimateData._id,
+                  pdfUrl,
+                  userData.firebaseUID,
+                  setModalMessage,
+                  setModalType
+              );
+              if (!dbUpdateSuccess) {
+                  setIsProcessingPdf(false);
+                  return;
+              }
+  
+              // Now that PDF is generated, uploaded, and DB updated, prepare the message
+              const formattedMessage = buildWhatsAppMessage(estimateData, pdfUrl);
+  
+              // Attempt to copy to clipboard IMMEDIATELY as part of the user gesture
+              if (navigator.clipboard) {
+                  try {
+                      await navigator.clipboard.writeText(formattedMessage);
+                      console.log("Message copied to clipboard immediately.");
+                      setModalMessage("Estimate link & message copied to clipboard. Now opening WhatsApp...");
+                      setModalType("info");
+                  } catch (clipboardError) {
+                      console.warn("Failed to copy to clipboard immediately:", clipboardError);
+                      setModalMessage("Failed to copy to clipboard. Now opening WhatsApp...");
+                      setModalType("info");
+                  }
+              } else {
+                  console.warn("Clipboard API not supported.");
+                  setModalMessage("Clipboard API not supported. Now opening WhatsApp...");
+                  setModalType("info");
+              }
+  
+              // Open WhatsApp directly with the formatted message
+              if (estimateData.phoneNumber) {
+                  setModalMessage("Opening WhatsApp directly with your message...");
+                  setModalType("info");
+                  window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(formattedMessage)}`, '_blank');
+                  console.log('Opened WhatsApp directly with formatted message.');
+  
+                  setModalMessage("Estimate sent via WhatsApp. ✅");
+                  setModalType("success");
+                  setTimeout(() => setModalMessage(""), 2000); // Clear success message after a bit
+              } else {
+                  setModalMessage("No phone number available for WhatsApp. Please copy the link & message manually.");
+                  setModalType("error");
+              }
+  
+          } catch (error) {
+              console.error("Error during share process:", error);
+              setModalMessage(`Failed to share estimate: ${error.message}`);
+              setModalType("error");
+          } finally {
+              setIsProcessingPdf(false);
+          }
+      };
 
   const handleGoBack = () => {
     if (onGoBack) {

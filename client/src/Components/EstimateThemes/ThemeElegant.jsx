@@ -2,18 +2,18 @@ import React, { useRef, useState } from "react";
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import { FaShareAlt, FaDownload, FaArrowLeft, FaPhone, FaEnvelope, FaMapMarkerAlt, FaYoutube, FaInstagram, FaFacebook, FaSpinner, FaCheckCircle, FaTimesCircle, FaInfoCircle } from "react-icons/fa";
-import { Camera, ImageIcon, BookOpen } from "lucide-react";
-import { useUser } from '../../context/UserContext'; // Assuming this path is correct for your project
+import { Camera, ImageIcon, BookOpen, Link as LinkIcon } from "lucide-react"; // Added LinkIcon
+import { useUser } from '../../context/UserContext';
 
 // Import the utility functions for S3 upload and database update
-import { uploadPdfToS3Backend, updateEstimateInDb } from "../../Utils/pdfShareUtils"; // Assuming this path is correct
+import { uploadPdfToS3Backend, updateEstimateInDb } from "../../Utils/pdfShareUtils";
 
-// // Import fonts
+// Import fonts
 import '@fontsource/montserrat';
 import '@fontsource/montserrat/500.css';
 import '@fontsource/montserrat/600.css';
 import '@fontsource/montserrat/700.css';
-import '@fontsource/playfair-display'; // For the elegant titles
+import '@fontsource/playfair-display';
 import ChooseTemplateBtn from "../../Utils/ChooseTemplateBtn";
 
 const ThemeElegant = ({ estimate, studio, onGoBack }) => {
@@ -35,10 +35,9 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
     }
 
     const firebaseUID = userData.firebaseUID;
-    console.log("Studio (User) Data:", studio);
-    console.log("Estimate Data:", estimate);
-    console.log("Firebase UID:", firebaseUID);
-
+    // console.log("Studio (User) Data:", studio); // Debugging line, can be removed
+    // console.log("Estimate Data:", estimate); // Debugging line, can be removed
+    // console.log("Firebase UID:", firebaseUID); // Debugging line, can be removed
 
     const printRef = useRef(null);
 
@@ -66,18 +65,26 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
         terms: ["Cancellation policy: Deposit is non-refundable if cancelled less than 60 days before the event."],
     };
 
+    // Merge default estimate with actual estimate data
     const estimateData = { ...defaultEstimate, ...estimate };
+
+    // Merge default studio with actual studio data (from props)
+    // Prioritize userData for dynamic fields like studioName, phone, social links
     const studioData = {
-        name: "Perfect Moment",
-        phone: "(123) 456-7890",
-        email: "info@perfectmoment.com",
-        address: { d_address: "123 Photography Lane", city: "Amityville", state: "ST", pincode: "12345" },
-        logoUrl: null,
-        website: null,
-        socialLinks: { youtube: null, instagram: null, facebook: null },
-        policies: null,
-        notes: null,
-        ...studio,
+        name: userData?.studioName || "Perfect Moment", // Use userData.studioName
+        phone: userData?.phoneNumber || "(123) 456-7890", // Use userData.phoneNumber
+        email: userData?.email || "info@perfectmoment.com",
+        address: userData?.address || { d_address: "123 Photography Lane", city: "Amityville", state: "ST", pincode: "12345" },
+        logoUrl: userData?.logoUrl || null,
+        website: userData?.website || null,
+        socialLinks: {
+            youtube: userData?.socialLinks?.youtube || null,
+            instagram: userData?.socialLinks?.instagram || null,
+            facebook: userData?.socialLinks?.facebook || null,
+        },
+        policies: userData?.policies || null, // Use userData.policies
+        notes: userData?.notes || null, // Use userData.notes
+        ...studio, // Any specific studio data passed as prop will override
     };
 
     const finalNotes = estimateData.notes;
@@ -88,7 +95,6 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
     } else if (estimateData.terms && Array.isArray(estimateData.terms) && estimateData.terms.length > 0) {
         finalTerms = estimateData.terms;
     }
-
 
     let displayDiscountAmount = 0;
     let discountDescription = "";
@@ -152,6 +158,46 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
         return <Camera className="w-5 h-5" />;
     };
 
+    /**
+     * Builds the formatted WhatsApp message including studio details and social links.
+     * @param {object} estimate - The estimate data.
+     * @param {string} url - The PDF URL.
+     * @returns {string} The formatted message string.
+     */
+    const buildWhatsAppMessage = (estimate, url) => {
+        // Use studioData.name for consistency, provide a fallback if it's empty or placeholder
+        const studioDisplayName = studioData.name && studioData.name !== "Your Studio Name" ? studioData.name : "our studio";
+
+        let message = `*Hello ${estimate.clientName}!* 👋\n\n`;
+        message += `We've prepared a detailed quotation for you from *${studioDisplayName}*.\n\n`;
+        message += `Please review it here:\n🔗 ${url}\n\n`; // The direct link
+        message += `Your Estimate ID: *${estimate._id}*\n\n`;
+        message += `Feel free to discuss or request any revisions. We're happy to work with you and look forward to capturing your perfect moments!\n\n`;
+
+        // Add social media links if present and valid (not default placeholders or empty strings)
+        const socialLinks = [];
+        if (studioData.socialLinks.instagram && !studioData.socialLinks.instagram.includes("instagram.com/yourstudio") && studioData.socialLinks.instagram !== "") {
+            socialLinks.push(`📸 Instagram: ${studioData.socialLinks.instagram}`);
+        }
+        if (studioData.socialLinks.youtube && !studioData.socialLinks.youtube.includes("youtube.com/yourstudio") && studioData.socialLinks.youtube !== "") {
+            socialLinks.push(`▶️ YouTube: ${studioData.socialLinks.youtube}`);
+        }
+        if (studioData.socialLinks.facebook && !studioData.socialLinks.facebook.includes("facebook.com/yourstudio") && studioData.socialLinks.facebook !== "") {
+            socialLinks.push(`👍 Facebook: ${studioData.socialLinks.facebook}`);
+        }
+        if (studioData.website && !studioData.website.includes("quotekaro.in") && studioData.website !== "") {
+            socialLinks.push(`🌐 Website: ${studioData.website}`);
+        }
+
+        if (socialLinks.length > 0) {
+            message += `\nConnect with us:\n${socialLinks.join('\n')}\n`;
+        }
+
+        message += `\nThank you for choosing ${studioDisplayName}!\n`;
+        return message;
+    };
+
+
     // --- Local function to generate PDF Blob from the current estimate's rendered view ---
     const generatePdfBlobFromCurrentView = async () => {
         setModalMessage("Generating PDF...");
@@ -165,7 +211,6 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
         }
 
         // Apply temporary styles for PDF capture to ensure A4 dimensions and desktop-like layout
-        // IMPORTANT: Added `color-adjust: exact` and `print-color-adjust: exact`
         setCaptureStyles({
             width: '210mm', // A4 width
             minHeight: '297mm', // A4 height
@@ -175,7 +220,6 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
             boxShadow: 'none', // Remove shadow for capture
             borderRadius: '0', // Remove border-radius for capture
             backgroundColor: '#ffffff', // Ensure white background for PDF
-            // Crucial for forcing colors and backgrounds in html2canvas/print
             WebkitPrintColorAdjust: 'exact', // For Webkit browsers (Chrome, Safari)
             colorAdjust: 'exact', // Standard property
         });
@@ -189,7 +233,6 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
                 useCORS: true, // Important for images loaded from external sources (e.g., logoUrl, background)
                 logging: false, // Disable html2canvas logging
                 backgroundColor: null, // Let the applied background color from CSS take effect
-                // Attempt to render with full color support
                 allowTaint: true, // Allows images from other origins to be drawn, but taints the canvas
                 ignoreElements: (element) => {
                     // Ignore elements with 'no-print' class during capture
@@ -267,6 +310,7 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
         }
     };
 
+    // --- UPDATED handleShare function ---
     const handleShare = async () => {
         if (isProcessingPdf) return;
         setIsProcessingPdf(true);
@@ -277,66 +321,72 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
             // 1. Generate PDF Blob from the current view
             const pdfBlob = await generatePdfBlobFromCurrentView();
             if (!pdfBlob) {
-                return; // Exit if PDF generation failed (message already set)
+                setIsProcessingPdf(false);
+                return;
             }
 
-            // 2. Upload PDF to S3 via Backend (using the imported utility function)
+            // 2. Upload PDF to S3 via Backend
             const pdfUrl = await uploadPdfToS3Backend(
                 pdfBlob,
                 estimateData._id,
                 estimateData.clientName,
                 estimateData.functionName,
-                firebaseUID,
+                userData.firebaseUID,
                 setModalMessage,
                 setModalType
             );
             if (!pdfUrl) {
-                return; // Exit if upload failed (message already set)
+                setIsProcessingPdf(false);
+                return;
             }
 
-            // 3. Update Estimate Model in MongoDB via Backend (using the imported utility function)
+            // 3. Update Estimate Model in MongoDB via Backend
             const dbUpdateSuccess = await updateEstimateInDb(
                 estimateData._id,
                 pdfUrl,
-                firebaseUID,
+                userData.firebaseUID,
                 setModalMessage,
                 setModalType
             );
             if (!dbUpdateSuccess) {
-                return; // Exit if DB update failed (message already set)
+                setIsProcessingPdf(false);
+                return;
             }
 
-            // 4. Share the PDF URL via Web Share API or WhatsApp
-            const shareTitle = `Estimate from ${studioData.studioName}`; // Corrected from studioData.studioName to studioData.studioName
-            const whatsappMessage = `Hi ${estimateData.clientName},\n\nHere's your estimate from ${studioData.studioName}:\n${pdfUrl}\n\nEstimate ID: ${estimateData._id}\n\nLooking forward to working with you!`;
+            // Now that PDF is generated, uploaded, and DB updated, prepare the message
+            const formattedMessage = buildWhatsAppMessage(estimateData, pdfUrl);
 
-            if (navigator.share) {
+            // Attempt to copy to clipboard IMMEDIATELY as part of the user gesture
+            if (navigator.clipboard) {
                 try {
-                    await navigator.share({
-                        title: shareTitle,
-                        text: whatsappMessage,
-                        url: pdfUrl,
-                    });
-                    console.log('Content shared successfully via Web Share API');
-                    setModalMessage("Estimate shared successfully ✅");
-                    setModalType("success");
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        console.log('Web Share API cancelled by user.');
-                        setModalMessage("Sharing cancelled.");
-                        setModalType("info"); // User cancelled, not an error
-                    } else {
-                        console.error('Error sharing via Web Share API:', error);
-                        setModalMessage("Failed to share via Web Share API. Opening WhatsApp directly.");
-                        setModalType("error");
-                        window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
-                    }
+                    await navigator.clipboard.writeText(formattedMessage);
+                    console.log("Message copied to clipboard immediately.");
+                    setModalMessage("Estimate link & message copied to clipboard. Now opening WhatsApp...");
+                    setModalType("info");
+                } catch (clipboardError) {
+                    console.warn("Failed to copy to clipboard immediately:", clipboardError);
+                    setModalMessage("Failed to copy to clipboard. Now opening WhatsApp...");
+                    setModalType("info");
                 }
             } else {
-                // Fallback for browsers that do not support Web Share API
-                setModalMessage("Web Share API not supported. Opening WhatsApp directly.");
-                setModalType("info"); // Informational message
-                window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+                console.warn("Clipboard API not supported.");
+                setModalMessage("Clipboard API not supported. Now opening WhatsApp...");
+                setModalType("info");
+            }
+
+            // Open WhatsApp directly with the formatted message
+            if (estimateData.phoneNumber) {
+                setModalMessage("Opening WhatsApp directly with your message...");
+                setModalType("info");
+                window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(formattedMessage)}`, '_blank');
+                console.log('Opened WhatsApp directly with formatted message.');
+
+                setModalMessage("Estimate sent via WhatsApp. ✅");
+                setModalType("success");
+                setTimeout(() => setModalMessage(""), 2000); // Clear success message after a bit
+            } else {
+                setModalMessage("No phone number available for WhatsApp. Please copy the link & message manually.");
+                setModalType("error");
             }
 
         } catch (error) {
@@ -345,11 +395,9 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
             setModalType("error");
         } finally {
             setIsProcessingPdf(false);
-            if (modalType === "success" || modalType === "error" || modalType === "info") {
-                setTimeout(() => setModalMessage(""), 3000);
-            }
         }
     };
+    // --- END UPDATED handleShare function ---
 
 
     const handleGoBack = () => {
@@ -376,23 +424,54 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
                 textColor = "text-green-500";
                 break;
             case 'error':
+            case 'info': // Both error and info types can show a copy button
                 icon = <FaTimesCircle className="text-4xl" />;
                 textColor = "text-red-500";
-                break;
-            case 'info': // For cases like Web Share API not supported
-                icon = <FaInfoCircle className="text-4xl" />;
-                textColor = "text-gray-500";
                 break;
             default:
                 icon = null;
                 textColor = "text-gray-700";
         }
 
+        // Determine if we should show copy button (Share is handled directly)
+        // This modal now only displays messages, not interactive share buttons.
+        const showCopyButtonInModal = (type === 'success' || type === 'info' || type === 'error') && estimateData.pdfUrl;
+        const formattedMessageForCopy = estimateData.pdfUrl ? buildWhatsAppMessage(estimateData, estimateData.pdfUrl) : '';
+
+
         return (
-            <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
                 <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center max-w-sm text-center">
                     {icon && <div className={`mb-4 ${textColor}`}>{icon}</div>}
                     <p className="text-lg font-semibold text-gray-800">{message}</p>
+                    {showCopyButtonInModal && (
+                        <div className="mt-4">
+                            <button
+                                onClick={async () => {
+                                    if (navigator.clipboard) {
+                                        await navigator.clipboard.writeText(formattedMessageForCopy);
+                                        setModalMessage("Link & message copied!");
+                                        setModalType("info");
+                                        setTimeout(() => setModalMessage(""), 1500);
+                                    } else {
+                                        setModalMessage("Clipboard API not supported in your browser.");
+                                        setModalType("error");
+                                    }
+                                }}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors"
+                            >
+                                <LinkIcon size={18} /> Copy Link & Message
+                            </button>
+                        </div>
+                    )}
+                    {(type !== 'loading') && (
+                        <button
+                            onClick={() => { setModalMessage(""); }} // Just clear message, no URL state in this modal
+                            className="mt-6 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                            Close
+                        </button>
+                    )}
                 </div>
             </div>
         );
@@ -403,44 +482,43 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
             {isProcessingPdf && <LoadingModal message={modalMessage} type={modalType} />}
 
             <div className="w-full max-w-4xl flex justify-between items-center mb-4 no-print p-4 sm:p-0">
-        <button
-          onClick={handleGoBack}
-          className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center text-gray-700"
-          aria-label="Go back"
-        >
-          <FaArrowLeft size={20} />
-        </button>
-        <div className="flex space-x-3">
-          
-          <ChooseTemplateBtn/>
-          <button
-            onClick={handleShare}
-            className="p-2 px-4 rounded-xl font-bold bg-blue-500 hover:bg-blue-600 transition-colors text-white flex items-center justify-center text-sm"
-            aria-label="Share estimate"
-            disabled={isProcessingPdf}
-          >
-            <FaShareAlt className="mr-2" size={16} />
-            {isProcessingPdf && modalType === "loading"
-              ? " Sharing..."
-              : " Share"}
-          </button>
-          <button
-            onClick={handleDownloadPdf}
-            className="p-2 px-4 rounded-xl font-bold bg-green-500 hover:bg-green-600 transition-colors text-white flex items-center justify-center text-sm"
-            aria-label="Download PDF"
-            disabled={isProcessingPdf}
-          >
-            <FaDownload className="mr-2" size={16} />
-            {isProcessingPdf && modalType === "loading"
-              ? " Generating..."
-              : " Download PDF"}
-          </button>
-        </div>
-      </div>
+                <button
+                    onClick={handleGoBack}
+                    className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center text-gray-700"
+                    aria-label="Go back"
+                >
+                    <FaArrowLeft size={20} />
+                </button>
+                <div className="flex space-x-3">
+
+                    <ChooseTemplateBtn />
+                    <button
+                        onClick={handleShare}
+                        className="p-2 px-4 rounded-xl font-bold bg-blue-500 hover:bg-blue-600 transition-colors text-white flex items-center justify-center text-sm"
+                        aria-label="Share estimate"
+                        disabled={isProcessingPdf}
+                    >
+                        <FaShareAlt className="mr-2" size={16} />
+                        {isProcessingPdf && modalType === "loading"
+                            ? " Sharing..."
+                            : " Share"}
+                    </button>
+                    <button
+                        onClick={handleDownloadPdf}
+                        className="p-2 px-4 rounded-xl font-bold bg-green-500 hover:bg-green-600 transition-colors text-white flex items-center justify-center text-sm"
+                        aria-label="Download PDF"
+                        disabled={isProcessingPdf}
+                    >
+                        <FaDownload className="mr-2" size={16} />
+                        {isProcessingPdf && modalType === "loading"
+                            ? " Generating..."
+                            : " Download PDF"}
+                    </button>
+                </div>
+            </div>
 
             <div
                 ref={printRef}
-                // className="bg-white text-gray-800 shadow-lg estimate-container print-a4-document-wrapper"
                 className=" pl-68 md:p-0 w-[210mm] min-h-[297mm] mx-auto bg-white text-gray-800 shadow-lg print-a4-document-wrapper overflow-hidden" // Fixed width for A4
                 style={captureStyles} // Apply dynamic styles for PDF capture
             >
@@ -452,11 +530,11 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
                                 <img src={studioData.logoUrl} alt="Studio Logo" className="h-20 w-auto object-contain mb-4" />
                             ) : (
                                 <div className="h-20 w-20 flex items-center justify-center text-5xl font-bold text-purple-500 bg-white rounded-full border-2 border-purple-500 mb-4">
-                                    {studioData.studioName ? studioData.studioName.charAt(0).toUpperCase() : "S"}
+                                    {studioData.name ? studioData.name.charAt(0).toUpperCase() : "S"}
                                 </div>
                             )}
                             <h1 className="text-4xl font-extrabold text-purple-500 font-['Playfair_Display'] mb-2 tracking-wide">
-                                {studioData.studioName}
+                                {studioData.name}
                             </h1>
                             <div className="text-sm text-gray-600">
                                 {studioData.address.d_address}, {studioData.address.city}, {studioData.address.state}, {studioData.address.pincode}
@@ -600,7 +678,7 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
                                 </div>
                             )}
                         </div>
-                        <p>&copy; {new Date().getFullYear()} {studioData.studioName}. All rights reserved.</p>
+                        <p>&copy; {new Date().getFullYear()} {studioData.name}. All rights reserved.</p> {/* Use studioData.name */}
                     </div>
                 </div>
             </div>

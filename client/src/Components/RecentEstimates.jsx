@@ -1,18 +1,19 @@
-import React, { useState } from "react"; // Added useState
-import { Plus, Edit, Send } from "lucide-react"; // Keep existing imports
+import React, { useState } from "react";
+import { Plus, Edit, Send, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEstimates } from "../context/EstimateContext";
 import { useUser } from "../context/UserContext";
-import { FaSpinner, FaCheckCircle, FaTimesCircle, FaInfoCircle } from "react-icons/fa"; // Added icons for modal
+import { FaSpinner, FaCheckCircle, FaTimesCircle, FaInfoCircle } from "react-icons/fa";
 
 function RecentEstimates() {
   const { userData } = useUser();
-  const { estimates, loading } = useEstimates();
+  const { estimates, loading, fetchEstimates } = useEstimates();
 
   // State for managing the loading/feedback modal
   const [isProcessing, setIsProcessing] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState("loading"); // 'loading', 'success', 'error', 'info'
+  const [shareableUrl, setShareableUrl] = useState(null); // State to hold the URL for sharing
 
   if (loading || !estimates) return null;
 
@@ -20,124 +21,189 @@ function RecentEstimates() {
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 10);
 
-  // Mock studio data, similar to ThemeMinimal, as RecentEstimates doesn't receive it as a prop.
-  // In a real app, this would ideally come from your useUser context or a dedicated StudioContext.
-  const mockStudioData = {
-    name: "Perfect Moment",
-    phone: "(123) 456-7890",
-    email: "info@perfectmoment.com",
-    address: { d_address: "123 Photography Lane", city: "Amityville", state: "ST", pincode: "12345" },
-    logoUrl: null,
-    website: null,
-    socialLinks: { youtube: null, instagram: null, facebook: null },
-    policies: null,
-    notes: null,
+  // IMPORTANT: Ensure these are correctly populated from your userData object.
+  // The placeholder values are for safety, but real data should come from your user profile.
+  const studioDetails = {
+    name: userData?.studioName || "Your Studio Name", // Use studioName from user data
+    phone: userData?.phoneNumber || "", // Crucial for WhatsApp!
+    email: userData?.email || "",
+    website: userData?.website || "",
+    socialLinks: {
+      youtube: userData?.socialLinks?.youtube || "",
+      instagram: userData?.socialLinks?.instagram || "",
+      facebook: userData?.socialLinks?.facebook || "",
+    },
+    // Add other relevant studio details as needed from userData
   };
+
+  // --- DEBUGGING LINE (Keep for testing, remove in production) ---
+  console.log("Current Studio Details for Message:", studioDetails);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "sent":
-        return "bg-blue-100 text-blue-800";
-      case "viewed":
-        return "bg-yellow-100 text-yellow-800";
-      case "approved":
-        return "bg-green-100 text-green-800";
-      case "draft":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case "sent": return "bg-blue-100 text-blue-800";
+      case "viewed": return "bg-yellow-100 text-yellow-800";
+      case "approved": return "bg-green-100 text-green-800";
+      case "draft": return "bg-gray-100 text-gray-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
-  // NEW: handleSendEstimate function
+  /**
+   * Builds the formatted WhatsApp message including studio details and social links.
+   * @param {object} estimate - The estimate data.
+   * @param {string} url - The PDF URL.
+   * @returns {string} The formatted message string.
+   */
+  const buildWhatsAppMessage = (estimate, url) => {
+    // Use studioDetails.name for consistency, provide a fallback if it's empty or placeholder
+    const studioDisplayName = studioDetails.name && studioDetails.name !== "Your Studio Name" ? studioDetails.name : "our studio";
+
+    let message = `*Hello ${estimate.clientName}!* 👋\n\n`;
+    message += `We've prepared a detailed quotation for you from *${studioDisplayName}*.\n\n`;
+    message += `Please review it here:\n🔗 ${url}\n\n`; // The direct link
+    message += `Your Estimate ID: *${estimate._id}*\n\n`;
+    message += `Feel free to discuss or request any revisions. We're happy to work with you and look forward to capturing your perfect moments!\n\n`;
+
+    // Add social media links if present and valid (not default placeholders or empty strings)
+    const socialLinks = [];
+    if (studioDetails.socialLinks.instagram && !studioDetails.socialLinks.instagram.includes("instagram.com/yourstudio") && studioDetails.socialLinks.instagram !== "") {
+      socialLinks.push(`📸 Instagram: ${studioDetails.socialLinks.instagram}`);
+    }
+    if (studioDetails.socialLinks.youtube && !studioDetails.socialLinks.youtube.includes("youtube.com/yourstudio") && studioDetails.socialLinks.youtube !== "") {
+      socialLinks.push(`▶️ YouTube: ${studioDetails.socialLinks.youtube}`);
+    }
+    if (studioDetails.socialLinks.facebook && !studioDetails.socialLinks.facebook.includes("facebook.com/yourstudio") && studioDetails.socialLinks.facebook !== "") {
+      socialLinks.push(`👍 Facebook: ${studioDetails.socialLinks.facebook}`);
+    }
+    if (studioDetails.website && !studioDetails.website.includes("quotekaro.in") && studioDetails.website !== "") {
+      socialLinks.push(`🌐 Website: ${studioDetails.website}`);
+    }
+
+    if (socialLinks.length > 0) {
+      message += `\nConnect with us:\n${socialLinks.join('\n')}\n`;
+    }
+
+    message += `\nThank you for choosing ${studioDisplayName}!\n`;
+
+    // --- DEBUGGING LINE (Keep for testing, remove in production) ---
+    console.log("Message generated by buildWhatsAppMessage:", message);
+
+    return message;
+  };
+
+  /**
+   * Handles the "Send" button click, updates estimate status, copies to clipboard,
+   * and opens WhatsApp with the formatted message.
+   * @param {object} estimate - The estimate data to share.
+   */
   const handleSendEstimate = async (estimate) => {
-    if (isProcessing) return; // Prevent multiple clicks
+    if (isProcessing) return;
     setIsProcessing(true);
     setModalMessage("Preparing estimate for sharing...");
     setModalType("loading");
 
+    const pdfUrl = estimate.pdfUrl;
+    if (!pdfUrl) {
+      setModalMessage("Error: PDF URL not found for this estimate. Please generate it first.");
+      setModalType("error");
+      setIsProcessing(false);
+      return;
+    }
+
+    const formattedMessage = buildWhatsAppMessage(estimate, pdfUrl);
+
+    // --- DEBUGGING LINES (Keep for testing, remove in production) ---
+    console.log("Estimate Phone Number at send time:", estimate.phoneNumber);
+    console.log("Formatted Message before any sharing attempt:", formattedMessage);
+    console.log("Encoded Formatted Message (what goes in URL):", encodeURIComponent(formattedMessage));
+    // --- END DEBUGGING LINES ---
+
+    // Step 1: Attempt to copy to clipboard IMMEDIATELY as part of the user gesture
+    if (navigator.clipboard) {
+      try {
+        // Await here is fine as it's part of the initial user gesture
+        await navigator.clipboard.writeText(formattedMessage);
+        console.log("Message copied to clipboard immediately.");
+        setModalMessage("Estimate link & message copied to clipboard. Now preparing for WhatsApp...");
+        setModalType("info"); // Info as it's a preparatory step message
+      } catch (clipboardError) {
+        console.warn("Failed to copy to clipboard immediately:", clipboardError);
+        setModalMessage("Failed to copy to clipboard. Preparing for WhatsApp...");
+        setModalType("info"); // Still info, as it's not a critical failure for the overall process
+      }
+    } else {
+      console.warn("Clipboard API not supported.");
+      setModalMessage("Clipboard API not supported. Preparing for WhatsApp...");
+      setModalType("info");
+    }
+
     try {
-      const pdfUrl = estimate.pdfUrl; // Get the PDF URL directly from the estimate object
-      if (!pdfUrl) {
-        setModalMessage("Error: PDF URL not found for this estimate.");
-        setModalType("error");
-        return;
-      }
-
-      // Optional: Update estimate status to 'sent' in MongoDB if it's not already
-      // This part is similar to ThemeMinimal's step 3, but simplified as PDF is already uploaded
+      // Step 2: Update estimate status to 'sent' in MongoDB
       if (estimate.status !== 'sent' && userData && userData.firebaseUID) {
-          setModalMessage(`Updating estimate status to 'sent'...`);
-          const backendUrl = import.meta.env.VITE_BACKEND_URL;
-          if (!backendUrl) {
-              throw new Error("VITE_BACKEND_URL is not defined in your environment variables.");
-          }
+        setModalMessage(`Updating estimate status to 'sent'...`); // Update message during this phase
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+        if (!backendUrl) {
+          throw new Error("VITE_BACKEND_URL is not defined in your environment variables.");
+        }
 
-          const response = await fetch(`${backendUrl}/api/estimates/${estimate._id}/update-pdf-url`, {
-              method: 'PUT',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  pdfUrl: pdfUrl,
-                  status: 'sent',
-                  firebaseUID: userData.firebaseUID, // Send firebaseUID from context
-              }),
-          });
+        const response = await fetch(`${backendUrl}/api/estimates/${estimate._id}/update-pdf-url`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'firebaseUID': userData.firebaseUID,
+          },
+          body: JSON.stringify({
+            pdfUrl: pdfUrl,
+            status: 'sent',
+            firebaseUID: userData.firebaseUID,
+          }),
+        });
 
-          if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(`Failed to update estimate status in MongoDB: ${errorData.message || response.statusText}`);
-          }
-          console.log("MongoDB update response:", await response.json());
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`Failed to update estimate status in MongoDB: ${errorData.message || response.statusText}`);
+        }
+        await response.json(); // Consume the response
+        fetchEstimates(); // Refresh estimates list to show updated status
       }
 
+      // Step 3: Open WhatsApp directly with the formatted message
+      setShareableUrl(pdfUrl); // Store for modal if it needs to show a link
 
-      // Share the PDF URL via Web Share API or WhatsApp
-      const shareTitle = `Estimate from ${mockStudioData.name}`;
-      const whatsappMessage = `Hi ${estimate.clientName},\n\nHere's your estimate from ${mockStudioData.name}:\n${pdfUrl}\n\nEstimate ID: ${estimate._id}\n\nLooking forward to working with you!`;
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: shareTitle,
-            text: whatsappMessage,
-            url: pdfUrl,
-          });
-          console.log('Content shared successfully via Web Share API');
-          setModalMessage("Estimate shared successfully ✅");
-          setModalType("success");
-        } catch (error) {
-          if (error.name === 'AbortError') {
-            console.log('Web Share API cancelled by user.');
-            setModalMessage("Sharing cancelled.");
-            setModalType("info"); // Use 'info' for user cancellation
-          } else {
-            console.error('Error sharing via Web Share API:', error);
-            setModalMessage("Failed to share via Web Share API. Opening WhatsApp directly.");
-            setModalType("error");
-            window.open(`https://wa.me/${estimate.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
-          }
-        }
-      } else {
-        // Fallback for browsers that do not support Web Share API
-        setModalMessage("Web Share API not supported. Opening WhatsApp directly.");
+      if (estimate.phoneNumber) {
+        setModalMessage("Opening WhatsApp directly with your message...");
         setModalType("info");
-        window.open(`https://wa.me/${estimate.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+        window.open(`https://wa.me/${estimate.phoneNumber}?text=${encodeURIComponent(formattedMessage)}`, '_blank');
+        console.log('Opened WhatsApp directly with formatted message.');
+
+        setModalMessage("Estimate sent via WhatsApp. ✅");
+        setModalType("success");
+        setTimeout(() => setModalMessage(""), 2000); // Clear success message after a bit
+      } else {
+        setModalMessage("No phone number available for WhatsApp. Please copy the link & message manually.");
+        setModalType("error");
       }
 
     } catch (error) {
-      console.error("Error during share process:", error);
+      console.error("Overall share process failed:", error);
       setModalMessage(`Failed to share estimate: ${error.message}`);
       setModalType("error");
     } finally {
       setIsProcessing(false);
-      setTimeout(() => setModalMessage(""), 3000); // Clear message after 3 seconds
+      // The modal will stay open until manually closed if it's a success/error/info with a link.
     }
   };
 
-  // Loading/Feedback Modal Component (reused from ThemeMinimal)
-  const LoadingModal = ({ message, type }) => {
+  /**
+   * Reusable Modal Component for loading and feedback.
+   * @param {object} props - Component props.
+   * @param {string} props.message - The message to display.
+   * @param {string} props.type - The type of message ('loading', 'success', 'error', 'info').
+   * @param {string} [props.url] - Optional URL to display or use for copy.
+   * @param {object} [props.estimate] - Optional estimate object for message formatting.
+   */
+  const LoadingModal = ({ message, type, url, estimate }) => {
     if (!message) return null;
 
     let icon;
@@ -164,27 +230,67 @@ function RecentEstimates() {
         textColor = "text-gray-700";
     }
 
+    // Show copy button if there's a URL and it's not a loading state
+    const showCopyButton = (type === 'success' || type === 'info' || type === 'error') && url;
+    // Ensure estimate is available for buildWhatsAppMessage if url is present
+    const formattedMessageForCopy = url && estimate ? buildWhatsAppMessage(estimate, url) : '';
+
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
         <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center max-w-sm text-center">
           {icon && <div className={`mb-4 ${textColor}`}>{icon}</div>}
-          <p className="text-lg font-semibold text-gray-800">{message}</p>
+          <p className="text-lg font-semibold text-gray-800 mb-4">{message}</p>
+
+          {showCopyButton && (
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={async () => {
+                  if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(formattedMessageForCopy);
+                    setModalMessage("Link & message copied!");
+                    setModalType("info");
+                    setTimeout(() => setModalMessage(""), 1500); // Clear transient message
+                  } else {
+                      setModalMessage("Clipboard API not supported in your browser.");
+                      setModalType("error");
+                  }
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors"
+              >
+                <LinkIcon size={18} /> Copy Link & Message
+              </button>
+            </div>
+          )}
+          {/* Close button for non-loading states */}
+          {(type !== 'loading') && (
+            <button
+              onClick={() => { setModalMessage(""); setShareableUrl(null); }} // Clear message and URL
+              className="mt-6 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     );
   };
 
-
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-      <LoadingModal message={modalMessage} type={modalType} /> {/* Add the modal here */}
+      <LoadingModal
+        message={modalMessage}
+        type={modalType}
+        url={shareableUrl} // Pass the shareable URL to the modal
+        // Find the estimate that matches the shareableUrl for the modal's copy button
+        estimate={recentEstimates.find(e => e.pdfUrl === shareableUrl)}
+      />
       <div className="flex items-center justify-between p-6 border-b border-gray-100">
         <h2 className="text-xl font-semibold text-gray-800">
           Recent Estimates
         </h2>
         <Link
           to="/new-estimate"
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
+          className="bg-purple-600 text-white  px-2   py-3 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
         >
           <Plus size={16} /> Create New
         </Link>
@@ -253,10 +359,10 @@ function RecentEstimates() {
                       <Edit size={16} />
                     </Link>
                     <button
-                      onClick={() => handleSendEstimate(estimate)} // Call the new handler
+                      onClick={() => handleSendEstimate(estimate)}
                       className="p-1 text-gray-600 hover:text-purple-600"
                       title="Send via WhatsApp"
-                      disabled={isProcessing} // Disable while processing
+                      disabled={isProcessing}
                     >
                       <Send size={16} />
                     </button>
