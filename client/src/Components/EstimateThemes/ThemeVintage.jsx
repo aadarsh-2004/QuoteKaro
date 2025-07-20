@@ -13,7 +13,7 @@ import '@fontsource/montserrat';
 import '@fontsource/montserrat/500.css';
 import '@fontsource/montserrat/600.css';
 import '@fontsource/montserrat/700.css';
-import ChooseTemplateBtn from "../../Utils/chooseTemplateBtn";
+import ChooseTemplateBtn from "../../Utils/ChooseTemplateBtn";
 // For "Brush Script MT", it's a system font, typically defined directly in CSS.
 
 const ThemeVintage = ({ estimate, studio, onGoBack }) => {

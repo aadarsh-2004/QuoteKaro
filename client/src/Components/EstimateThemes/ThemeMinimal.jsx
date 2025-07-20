@@ -24,7 +24,7 @@ import {
   uploadPdfToS3Backend,
   updateEstimateInDb,
 } from "../../Utils/pdfShareUtils";
-import ChooseTemplateBtn from "../../Utils/chooseTemplateBtn";
+import ChooseTemplateBtn from "../../Utils/ChooseTemplateBtn";
 
 
 

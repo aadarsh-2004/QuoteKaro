@@ -13,7 +13,7 @@ import '@fontsource/inter'; // A modern, professional sans-serif font
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
-import ChooseTemplateBtn from "../../Utils/chooseTemplateBtn";
+import ChooseTemplateBtn from "../../Utils/ChooseTemplateBtn";
 // You might not need Playfair Display if going for a pure sans-serif look
 // import '@fontsource/playfair-display';
 
