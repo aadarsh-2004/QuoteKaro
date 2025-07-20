@@ -87,6 +87,7 @@
     flex-direction: column;
   }
 
+  
   /* Your main document wrapper should be full width for print */
   .estimate-container {
     width: 210mm; /* A4 width */

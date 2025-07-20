@@ -1,4 +1,5 @@
-import { useParams, useNavigate, Link } from "react-router-dom"; // Import useNavigate
+// PreviewPageMainn.jsx
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useUser } from "../context/UserContext.jsx";
 import axios from "axios";
@@ -9,11 +10,10 @@ import ThemeSimple from "./EstimateThemes/ThemeSimple.jsx";
 import ThemeMinimal from "./EstimateThemes/ThemeMinimal.jsx";
 import ThemeVintage from "./EstimateThemes/ThemeVintage.jsx";
 import MiniCalender from "./MiniCalender.jsx";
-// import CreditCard from "./CreditCard.jsx";
 
 const PreviewPageMainn = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const { userData, loading: userLoading } = useUser();
 
   const [estimate, setEstimate] = useState(null);
@@ -61,32 +61,24 @@ const PreviewPageMainn = () => {
     }
   };
 
-  // Function to handle navigation to the preferences page
   const handleGoToPreferences = () => {
-    navigate("/settings/preferences"); // Navigate to the /preference route
+    navigate("/settings/preferences");
   };
 
   return (
-    <div className="min-h-screen  md:w-screen">
+    // REMOVED min-h-screen. The body/html should handle the main scroll.
+    // md:w-screen is fine for larger screens where you control the width.
+    <div className="md:w-screen">
       <div className="flex justify-center ">
-        {/* <div className="flex justify-end mb-4"> 
-          <button
-            onClick={handleGoToPreferences}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Change Template
-          </button>
-        </div> */}
-
         {renderTheme()}
-        <div className="p-5 w-3/4 mx-2 md:block  hidden  ">
-          {/* CreditCard */}
+        {/* Side panel for desktop, ensure it doesn't cause overflow on mobile */}
+        {/* This div is 'hidden' on small screens, so it shouldn't be the cause of mobile overflow. */}
+        <div className="p-5 w-3/4 mx-2 md:block hidden ">
           <div className=" my-4">
             <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
                 <Crown size={24} />
                 <div>
-                  {/* Ensure userData.plan exists before accessing */}
                   <h3 className="font-semibold">
                     {userData.plan || "No Plan"} Plan
                   </h3>
@@ -98,7 +90,6 @@ const PreviewPageMainn = () => {
                   <span className="text-purple-100">Credits Remaining</span>
                   <Zap size={16} />
                 </div>
-                {/* Ensure userData.left_credits exists before displaying */}
                 <div className="text-2xl font-bold">
                   {userData.left_credits !== undefined
                     ? userData.left_credits
@@ -111,10 +102,7 @@ const PreviewPageMainn = () => {
                 </button>
               </Link>
             </div>
-            {/* <CreditCard /> */}
           </div>
-
-          {/* Calender */}
           <div className=" my-4">
             <MiniCalender />
           </div>
@@ -124,4 +112,4 @@ const PreviewPageMainn = () => {
   );
 };
 
-export default PreviewPageMainn;
+export default PreviewPageMainn;  

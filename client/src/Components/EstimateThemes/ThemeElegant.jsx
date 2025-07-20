@@ -440,7 +440,8 @@ const ThemeElegant = ({ estimate, studio, onGoBack }) => {
 
             <div
                 ref={printRef}
-                className="w-[210mm] min-h-[297mm] mx-auto bg-white text-gray-800 shadow-lg print-a4-document-wrapper overflow-hidden" // Fixed width for A4
+                // className="bg-white text-gray-800 shadow-lg estimate-container print-a4-document-wrapper"
+                className="w-screen h-screen md:w-[210mm] md:min-h-[297mm] mx-auto bg-white text-gray-800 shadow-lg print-a4-document-wrapper overflow-hidden" // Fixed width for A4
                 style={captureStyles} // Apply dynamic styles for PDF capture
             >
                 <div className="flex flex-col h-full"> {/* Flex container for content */}
