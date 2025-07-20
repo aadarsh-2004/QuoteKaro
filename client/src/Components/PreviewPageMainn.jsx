@@ -1,15 +1,15 @@
-import { useParams, useNavigate } from "react-router-dom"; // Import useNavigate
+import { useParams, useNavigate, Link } from "react-router-dom"; // Import useNavigate
 import { useEffect, useState } from "react";
 import { useUser } from "../context/UserContext.jsx";
 import axios from "axios";
-
+import { Crown, Zap } from "lucide-react";
 import ThemeModern from "./EstimateThemes/ThemeModern.jsx";
 import ThemeElegant from "./EstimateThemes/ThemeElegant.jsx";
 import ThemeSimple from "./EstimateThemes/ThemeSimple.jsx";
 import ThemeMinimal from "./EstimateThemes/ThemeMinimal.jsx";
 import ThemeVintage from "./EstimateThemes/ThemeVintage.jsx";
 import MiniCalender from "./MiniCalender.jsx";
-import CreditCard from "./CreditCard.jsx";
+// import CreditCard from "./CreditCard.jsx";
 
 const PreviewPageMainn = () => {
   const { id } = useParams();
@@ -79,10 +79,42 @@ const PreviewPageMainn = () => {
         </div> */}
 
         {renderTheme()}
-        <div className="p-5 w-full md:block hidden ">
+        <div className="p-5 w-3/4 mx-2 md:block  hidden  ">
+          {/* CreditCard */}
           <div className=" my-4">
-            <CreditCard />
+            <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <Crown size={24} />
+                <div>
+                  {/* Ensure userData.plan exists before accessing */}
+                  <h3 className="font-semibold">
+                    {userData.plan || "No Plan"} Plan
+                  </h3>
+                  <p className="text-purple-100 text-sm">Active subscription</p>
+                </div>
+              </div>
+              <div className="bg-white/20 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-purple-100">Credits Remaining</span>
+                  <Zap size={16} />
+                </div>
+                {/* Ensure userData.left_credits exists before displaying */}
+                <div className="text-2xl font-bold">
+                  {userData.left_credits !== undefined
+                    ? userData.left_credits
+                    : "N/A"}
+                </div>
+              </div>
+              <Link to="/plan-credits">
+                <button className="w-full bg-white text-purple-600 py-2 rounded-lg font-medium hover:bg-purple-50 transition-colors">
+                  Buy More Credits
+                </button>
+              </Link>
+            </div>
+            {/* <CreditCard /> */}
           </div>
+
+          {/* Calender */}
           <div className=" my-4">
             <MiniCalender />
           </div>

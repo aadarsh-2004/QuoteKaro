@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import WelcomeSection from "../Components/WelcomeSection";
 import { useUser } from "../context/UserContext";
-import { ArrowBigLeftDash, ArrowBigRightDash } from "lucide-react";
+import { ArrowBigLeftDash, ArrowBigRightDash, X, Crown, Lock } from "lucide-react";
 import axios from "axios";
 import ServicesManagement from "./ServicesManagement";
 import { toast } from "react-hot-toast";
@@ -12,42 +12,38 @@ function PreferencePage() {
   const API_BASE_URL =
     import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
   
-  // Initialize localUserProfile with userData's selected theme or null/undefined
   const [localUserProfile, setLocalUserProfile] = useState({
     selectedEstimateTheme: userData?.selectedEstimateTheme,
   });
 
   const [allEstimateTemplates, setAllEstimateTemplates] = useState([]);
-  const [loading, setLoading] = useState(true); // Initial loading state
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
 
-  // Define plan hierarchy for comparison (Starter < Professional < Enterprise)
-  // Use consistent casing for keys as per your backend enum
+  // Define plan hierarchy with colors and features
   const PLAN_HIERARCHY = {
-    "Starter": 0,
-    "Professional": 1,
-    "Enterprise": 2,
+    "Basic": { level: 0, color: "gray", bgColor: "bg-gray-100", textColor: "text-gray-800" },
+    "Starter": { level: 1, color: "blue", bgColor: "bg-blue-100", textColor: "text-blue-800" },
+    "Professional": { level: 2, color: "purple", bgColor: "bg-purple-100", textColor: "text-purple-800" },
+    "Enterprise": { level: 3, color: "amber", bgColor: "bg-amber-100", textColor: "text-amber-800" },
   };
 
-  // Get current plan from user data, default to "Starter" if not set
-  // Ensure plan string is consistent with PLAN_HIERARCHY keys
-  const currentPlan = userData?.plan || "Starter";
-  // Get the plan level, default to 0 (Starter) if not found in hierarchy
-  const currentUserPlanLevel = PLAN_HIERARCHY[currentPlan] !== undefined ? PLAN_HIERARCHY[currentPlan] : 0;
+  const currentPlan = userData?.plan || "Basic";
+  const currentUserPlanLevel = PLAN_HIERARCHY[currentPlan]?.level || 0;
 
   // Carousel state
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef(null);
 
-  // Function to determine visible items based on current screen width
+  // Get visible items based on screen size - improved for mobile
   const getVisibleItems = () => {
-    if (window.innerWidth >= 1024) { // lg screens
-      return 4;
-    } else if (window.innerWidth >= 768) { // md screens
-      return 2;
-    } else { // sm and xs screens
-      return 1;
-    }
+    if (window.innerWidth >= 1280) return 4; // xl screens
+    if (window.innerWidth >= 1024) return 3; // lg screens  
+    if (window.innerWidth >= 768) return 2;  // md screens
+    return 3; // Mobile: show 3 small cards
   };
 
   const [visibleItems, setVisibleItems] = useState(getVisibleItems());
@@ -61,7 +57,21 @@ function PreferencePage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Fetch estimate templates on component mount or when userData changes
+  // Get categories from templates
+  const getCategories = () => {
+    const categories = ["All"];
+    const planCategories = [...new Set(allEstimateTemplates.map(t => t.plan))];
+    categories.push(...planCategories);
+    return categories;
+  };
+
+  // Filter templates by category
+  const getFilteredTemplates = () => {
+    if (activeCategory === "All") return allEstimateTemplates;
+    return allEstimateTemplates.filter(template => template.plan === activeCategory);
+  };
+
+  // Fetch estimate templates
   useEffect(() => {
     const fetchTemplates = async () => {
       setLoading(true);
@@ -70,7 +80,6 @@ function PreferencePage() {
         const fetchedTemplates = response.data.templates;
         setAllEstimateTemplates(fetchedTemplates);
 
-        // Set initial theme if user has none or if default theme is not found
         const initialThemeId = userData?.selectedEstimateTheme;
         if (initialThemeId) {
           setLocalUserProfile((prev) => ({
@@ -81,12 +90,10 @@ function PreferencePage() {
             (template) => template.id === initialThemeId
           );
           if (themeIndex !== -1) {
-            // Adjust current index to bring the selected theme into view
             const maxAllowedIndex = Math.max(0, fetchedTemplates.length - getVisibleItems());
             setCurrentIndex(Math.min(themeIndex, maxAllowedIndex));
           }
         } else if (fetchedTemplates.length > 0) {
-          // If no theme selected, default to the first available template
           setLocalUserProfile((prev) => ({
             ...prev,
             selectedEstimateTheme: fetchedTemplates[0].id,
@@ -100,15 +107,19 @@ function PreferencePage() {
       }
     };
 
-    // Only fetch templates if userData is available (to ensure currentPlan is set for logic)
     if (userData) {
       fetchTemplates();
     }
-  }, [userData, API_BASE_URL]); // Added API_BASE_URL and userData as dependencies
+  }, [userData, API_BASE_URL]);
 
-  // Carousel navigation functions
+  // Reset carousel when category changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [activeCategory]);
+
   const nextSlide = () => {
-    const maxIndex = Math.max(0, allEstimateTemplates.length - visibleItems);
+    const filteredTemplates = getFilteredTemplates();
+    const maxIndex = Math.max(0, filteredTemplates.length - visibleItems);
     setCurrentIndex((prev) => Math.min(prev + 1, maxIndex));
   };
 
@@ -117,20 +128,13 @@ function PreferencePage() {
   };
 
   const handleSelectTemplate = async (templateId, templatePlan) => {
-    if (isSaving) return; // Prevent multiple clicks
+    if (isSaving) return;
 
-    // Check if the template is unlocked for the current user's plan
-    const templatePlanLevel = PLAN_HIERARCHY[templatePlan] !== undefined ? PLAN_HIERARCHY[templatePlan] : 0; // Default to 0 if plan not found
+    const templatePlanLevel = PLAN_HIERARCHY[templatePlan]?.level || 0;
     
-    // --- DEBUGGING LOGS ---
-    console.log("--- Template Selection Attempt ---");
-    console.log("User's Current Plan:", currentPlan, "(Level:", currentUserPlanLevel, ")");
-    console.log("Template Required Plan:", templatePlan, "(Level:", templatePlanLevel, ")");
-    console.log("Is Unlocked (currentUserPlanLevel >= templatePlanLevel)?", currentUserPlanLevel >= templatePlanLevel);
-    // --- END DEBUGGING LOGS ---
-
     if (currentUserPlanLevel < templatePlanLevel) {
-      toast.error(`This template requires the ${templatePlan} Plan. Please upgrade your subscription.`);
+      setSelectedPlan(templatePlan);
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -153,7 +157,7 @@ function PreferencePage() {
           ...prevProfile,
           selectedEstimateTheme: templateId,
         }));
-        refresh(); // Refresh user context to reflect changes globally
+        refresh();
         toast.success("Template updated successfully!");
       } else {
         toast.error(response.data.message || "Failed to update template.");
@@ -166,10 +170,64 @@ function PreferencePage() {
     }
   };
 
-  // Show loading until userData and templates are loaded
+  // Upgrade Modal Component
+  const UpgradeModal = () => {
+    if (!showUpgradeModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 relative animate-in slide-in-from-bottom-4">
+          <button
+            onClick={() => setShowUpgradeModal(false)}
+            className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} />
+          </button>
+          
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Crown className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Upgrade Required</h3>
+            <p className="text-gray-600">
+              This premium template requires the <span className="font-semibold text-purple-600">{selectedPlan}</span> plan to unlock.
+            </p>
+          </div>
+
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-3 text-sm text-gray-700">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span>Access to premium templates</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-700">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span>Advanced customization options</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-700">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span>Priority support</span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200">
+              Upgrade to {selectedPlan}
+            </button>
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="w-full text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!userData || loading) {
     return (
-      <div className="flex-1 p-0 m-0 md:p-8 overflow-y-auto flex items-center justify-center h-screen bg-gray-900 text-white">
+      <div className="flex-1 p-0 m-0 md:p-8 overflow-y-auto flex items-center justify-center h-screen bg-white text-purple-500">
         <div className="text-gray-500 flex items-center text-lg">
           <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -181,27 +239,44 @@ function PreferencePage() {
     );
   }
 
+  const filteredTemplates = getFilteredTemplates();
+  const categories = getCategories();
+
   return (
     <div className="flex-1 p-0 m-0 md:p-8 overflow-y-auto">
-      {/* Header */}
       <WelcomeSection name="Preferences" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Services Section */}
-        <section className="mb-12">
-          <ServicesManagement userId={userData._id} />
-        </section>
-
         {/* Template Selection Section */}
         <section className="mb-12">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+              <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Choose Estimate Template
               </h2>
-              {allEstimateTemplates.length > visibleItems && ( // Only show navigation if there are more templates than visible items
+              
+              {/* Category Filter - Mobile Horizontal Scroll */}
+              <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setActiveCategory(category)}
+                    className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                      activeCategory === category
+                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation Buttons - Hidden on mobile with 3-card view */}
+            {filteredTemplates.length > visibleItems && window.innerWidth >= 768 && (
+              <div className="flex items-center justify-center mb-6">
                 <div className="flex items-center space-x-2">
-                  {/* Prev Button */}
                   <button
                     onClick={prevSlide}
                     disabled={currentIndex === 0}
@@ -209,97 +284,82 @@ function PreferencePage() {
                   >
                     <ArrowBigLeftDash size={24} />
                   </button>
-
-                  {/* Next Button */}
+                  <span className="text-sm text-gray-500 px-3">
+                    {currentIndex + 1} - {Math.min(currentIndex + visibleItems, filteredTemplates.length)} of {filteredTemplates.length}
+                  </span>
                   <button
                     onClick={nextSlide}
-                    disabled={currentIndex >= allEstimateTemplates.length - visibleItems}
+                    disabled={currentIndex >= filteredTemplates.length - visibleItems}
                     className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700"
                   >
                     <ArrowBigRightDash size={24} />
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {allEstimateTemplates.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">No estimate templates available.</div>
+            {filteredTemplates.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                No templates available for the selected category.
+              </div>
             ) : (
               <div className="overflow-hidden">
+                {/* Mobile: Horizontal scroll, Desktop: Carousel */}
                 <div
                   ref={carouselRef}
-                  className="flex transition-transform duration-300 ease-in-out"
-                  style={{
+                  className={`flex transition-transform duration-300 ease-in-out ${
+                    window.innerWidth < 768 ? 'gap-2 overflow-x-auto scrollbar-hide pb-4' : ''
+                  }`}
+                  style={window.innerWidth >= 768 ? {
                     transform: `translateX(-${currentIndex * (100 / visibleItems)}%)`,
-                  }}
+                  } : {}}
                 >
-                  {allEstimateTemplates.map((template) => {
-                    // Get template's required plan level, default to 0 if not found
-                    const templatePlanLevel = PLAN_HIERARCHY[template.plan] !== undefined ? PLAN_HIERARCHY[template.plan] : 0;
-                    // Determine if the template is unlocked for the current user
+                  {filteredTemplates.map((template, index) => {
+                    const templatePlanLevel = PLAN_HIERARCHY[template.plan]?.level || 0;
                     const isUnlocked = currentUserPlanLevel >= templatePlanLevel;
                     const isSelected = localUserProfile.selectedEstimateTheme === template.id;
-
-                    // --- DEBUGGING LOGS (for each template) ---
-                    console.log(`Template: ${template.name} (ID: ${template.id})`);
-                    console.log(`  Required Plan: ${template.plan} (Level: ${templatePlanLevel})`);
-                    console.log(`  User's Plan: ${currentPlan} (Level: ${currentUserPlanLevel})`);
-                    console.log(`  Is Unlocked: ${isUnlocked}`);
-                    // --- END DEBUGGING LOGS ---
+                    const planInfo = PLAN_HIERARCHY[template.plan] || PLAN_HIERARCHY.Basic;
 
                     return (
                       <div
                         key={template.id}
-                        className={`flex-none px-2 
-                            ${visibleItems === 1 ? 'w-full' : ''}
-                            ${visibleItems === 2 ? 'w-1/2' : ''}
-                            ${visibleItems === 4 ? 'w-1/4' : ''}
-                        `}
+                        className={`flex-none ${
+                          window.innerWidth < 768 
+                            ? 'w-32 md:w-40' // Small cards on mobile
+                            : visibleItems === 1 ? 'w-full px-2' 
+                            : visibleItems === 2 ? 'w-1/2 px-2'
+                            : visibleItems === 3 ? 'w-1/3 px-2'
+                            : 'w-1/4 px-2'
+                        }`}
                       >
                         <div
-                          className={`
-                            relative bg-white rounded-lg border-2 cursor-pointer transition-all duration-200 h-full overflow-hidden shadow-sm
-                            ${
-                              isSelected
-                                ? "border-purple-500 ring-2 ring-purple-200 shadow-lg"
-                                : "border-gray-200 hover:border-gray-300"
-                            }
-                            ${
-                              !isUnlocked
-                                ? "opacity-60 cursor-not-allowed grayscale"
-                                : "hover:shadow-md"
-                            }
-                          `}
+                          className={`relative bg-white rounded-lg border-2 cursor-pointer transition-all duration-200 h-full overflow-hidden shadow-sm ${
+                            isSelected
+                              ? "border-purple-500 ring-2 ring-purple-200 shadow-lg"
+                              : "border-gray-200 hover:border-gray-300"
+                          } ${
+                            !isUnlocked
+                              ? "opacity-70 cursor-not-allowed"
+                              : "hover:shadow-md hover:scale-105"
+                          }`}
                           onClick={() =>
                             isUnlocked &&
                             !isSaving &&
-                            handleSelectTemplate(template.id, template.plan) // Pass template.plan here
+                            handleSelectTemplate(template.id, template.plan)
                           }
                         >
-                          {/* Lock overlay for locked templates */}
+                          {/* Lock overlay */}
                           {!isUnlocked && (
-                            <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center rounded-lg z-10 p-4">
-                              <svg
-                                className="w-8 h-8 text-white mb-2"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M12 15v2m-6 4h12a2 2 0 002-2v-5a2 2 0 00-2-2H6a2 2 0 00-2-2V7a4 4 0 118 0v4z"
-                                />
-                              </svg>
-                              <span className="text-white text-sm font-semibold text-center leading-tight">
-                                Requires {template.plan} Plan
+                            <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-black/40 flex flex-col items-center justify-center rounded-lg z-10 p-2">
+                              <Lock className="w-6 h-6 md:w-8 md:h-8 text-white mb-2" />
+                              <span className="text-white text-xs md:text-sm font-semibold text-center leading-tight">
+                                {template.plan} Plan
                               </span>
                             </div>
                           )}
 
-                          {/* Template Image with A4 aspect ratio */}
-                          <div className="aspect-[3/4] w-full overflow-hidden rounded-t-lg">
+                          {/* Template Image - Smaller on mobile */}
+                          <div className={`${window.innerWidth < 768 ? 'aspect-[3/4]' : 'aspect-[3/4]'} w-full overflow-hidden rounded-t-lg`}>
                             <img
                               src={template.image}
                               alt={template.name}
@@ -312,15 +372,17 @@ function PreferencePage() {
                             />
                           </div>
 
-                          {/* Template Info */}
-                          <div className="p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold text-gray-900 text-base truncate">
+                          {/* Template Info - Compact on mobile */}
+                          <div className={`p-2 ${window.innerWidth >= 768 ? 'md:p-4' : ''}`}>
+                            <div className="flex items-center justify-between mb-1 md:mb-2">
+                              <h3 className={`font-semibold text-gray-900 truncate ${
+                                window.innerWidth < 768 ? 'text-xs' : 'text-sm md:text-base'
+                              }`}>
                                 {template.name}
                               </h3>
                               {isSelected && (
                                 <svg
-                                  className="w-5 h-5 text-purple-500 flex-shrink-0"
+                                  className="w-4 h-4 md:w-5 md:h-5 text-purple-500 flex-shrink-0"
                                   fill="currentColor"
                                   viewBox="0 0 20 20"
                                 >
@@ -332,23 +394,24 @@ function PreferencePage() {
                                 </svg>
                               )}
                             </div>
-                            <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                              {template.description}
-                            </p>
+                            
+                            {/* Description - Hidden on very small mobile */}
+                            {window.innerWidth >= 768 && (
+                              <p className="text-xs md:text-sm text-gray-500 mb-2 md:mb-3 line-clamp-2">
+                                {template.description}
+                              </p>
+                            )}
+                            
                             <div className="flex items-center justify-between">
                               <span
-                                className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                                  template.plan === "Starter"
-                                    ? "bg-gray-200 text-gray-800"
-                                    : template.plan === "Professional"
-                                    ? "bg-blue-200 text-blue-800"
-                                    : "bg-purple-200 text-purple-800"
-                                }`}
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${planInfo.bgColor} ${planInfo.textColor}`}
                               >
                                 {template.plan}
                               </span>
                               {isSaving && isSelected && (
-                                <span className="text-sm text-purple-500">Saving...</span>
+                                <span className={`${window.innerWidth < 768 ? 'text-xs' : 'text-sm'} text-purple-500`}>
+                                  Saving...
+                                </span>
                               )}
                             </div>
                           </div>
@@ -360,11 +423,11 @@ function PreferencePage() {
               </div>
             )}
 
-            {/* Carousel Indicators */}
-            {!loading && allEstimateTemplates.length > visibleItems && (
+            {/* Carousel Indicators - Only show on desktop */}
+            {!loading && filteredTemplates.length > visibleItems && window.innerWidth >= 768 && (
               <div className="flex justify-center mt-6 space-x-2">
                 {Array.from({
-                  length: Math.max(1, allEstimateTemplates.length - visibleItems + 1),
+                  length: Math.max(1, filteredTemplates.length - visibleItems + 1),
                 }).map((_, index) => (
                   <button
                     key={index}
@@ -378,7 +441,15 @@ function PreferencePage() {
             )}
           </div>
         </section>
+
+        {/* Services Section */}
+        <section className="mb-12">
+          <ServicesManagement userId={userData._id} />
+        </section>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal />
     </div>
   );
 }
