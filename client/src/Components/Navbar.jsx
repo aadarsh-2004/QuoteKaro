@@ -1,12 +1,10 @@
-
 import BellIcon from "../Utils/BellIcon.jsx";
-import CreditsBtn from "../Utils/CreditsBtn.jsx";
+import CreditsBtn from "../Utils/ChooseTemplateBtn.jsx";
 import { auth } from "../../firebase";
-import { useNavigate , Link  } from "react-router-dom";
-import { FileSignature} from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { FileSignature } from "lucide-react";
 function Navbar() {
   const navigate = useNavigate();
-
 
   const getUserInfo = () => {
     const user = auth.currentUser;
@@ -36,18 +34,17 @@ function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* LOGO */}
           <div className="flex justify-center gap-2">
-          
             {/* <FileSignature className="w-4 h-4 text-white" /> */}
-            <img src="/bgremovelogo.png" alt="logo" className='w-38 h-38' />
-          
-          {/* <a href="/dashboard">
+            <img src="/bgremovelogo.png" alt="logo" className="w-38 h-38" />
+
+            {/* <a href="/dashboard">
             <h1 className="text-lg pt-1 font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">QuoteKaro</h1>
           </a> */}
           </div>
           {/* Right Icons */}
           <div className="flex items-center space-x-3">
             {/* Bell */}
-            <Link to="/notifications" >
+            <Link to="/notifications">
               <BellIcon />
             </Link>
             {/* Credits - Desktop only */}

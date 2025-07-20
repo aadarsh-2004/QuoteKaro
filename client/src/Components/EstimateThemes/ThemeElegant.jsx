@@ -1,181 +1,610 @@
-// ThemeModern.jsx
-import React from "react";
-import {
-  Calendar,
-  MapPin,
-  Globe,
-  Phone,
-  Mail,
-  User,
-  FileText,
-  Clock,
-  CheckCircle,
-  Tag,
-  TrendingUp,
-  DollarSign,
-  Camera, // Import Camera icon for the modern theme
-} from "lucide-react";
+import React, { useRef, useState } from "react";
+import html2canvas from 'html2canvas-pro';
+import jsPDF from 'jspdf';
+import { FaShareAlt, FaDownload, FaArrowLeft, FaPhone, FaEnvelope, FaMapMarkerAlt, FaYoutube, FaInstagram, FaFacebook, FaSpinner, FaCheckCircle, FaTimesCircle, FaInfoCircle } from "react-icons/fa";
+import { Camera, ImageIcon, BookOpen } from "lucide-react";
+import { useUser } from '../../context/UserContext'; // Assuming this path is correct for your project
 
-const ThemeElegant = ({ estimate, studio }) => {
-  // --- Data Initialization and Fallbacks ---
-  const data = estimate || {};
-  const studioData = studio || {};
+// Import the utility functions for S3 upload and database update
+import { uploadPdfToS3Backend, updateEstimateInDb } from "../../Utils/pdfShareUtils"; // Assuming this path is correct
 
-  // Default values for common fields if they are missing
-  const defaultEstimate = {
-    _id: "0098773",
-    clientName: "Susan Foster & David Chung",
-    functionName: "Wedding Services",
-    subFunction: "Photography",
-    location: "1234 Elm Street, Springfield, IL 62704",
-    phoneNumber: "+91 98765 43210",
-    startDate: new Date("2030/01/30"),
-    services: [
-      { serviceName: "Pre-Wedding Consultation", description: "", total: 0, included: true },
-      { serviceName: "Wedding Day Photography (8 hours)", description: "", total: 1500 },
-      { serviceName: "Additional Hourly Coverage", description: "2 hrs", total: 400, rate: 200 },
-      { serviceName: "Engagement Session", description: "", total: 300 },
-      { serviceName: "High-Resolution Digital Photos", description: "", total: 0, included: true },
-      { serviceName: "Online Gallery for Sharing", description: "", total: 0, included: true },
-      { serviceName: "Custom Wedding Photo Album", description: "", total: 500 },
-      { serviceName: "Travel Fee (if applicable)", description: "", total: 100 }
-    ],
-    subtotal: 2800,
-    discount: 200,
-    netTotal: 2600,
-    notes: [],
-    terms: [
-      "Deposit: 50% of the total estimate due at the time of booking.",
-      "Balance: Remaining balance due 2 weeks before the wedding date.",
-      "Rescheduling must be communicated at least 2 weeks in advance",
-      "All raw files and copyrights remain with the studio",
-      "Delivery timeline: 4-6 weeks after the event"
-    ]
-  };
+// // Import fonts
+import '@fontsource/montserrat';
+import '@fontsource/montserrat/500.css';
+import '@fontsource/montserrat/600.css';
+import '@fontsource/montserrat/700.css';
+import '@fontsource/playfair-display'; // For the elegant titles
+import ChooseTemplateBtn from "../../Utils/ChooseTemplateBtn";
 
-  // Merge provided data with defaults
-  const estimateData = { ...defaultEstimate, ...data };
+const ThemeElegant = ({ estimate, studio, onGoBack }) => {
+    const { userData, loading: userLoading } = useUser();
 
-  const formatDate = (dateInput) => {
-    if (!dateInput) return 'N/A';
-    const date = new Date(dateInput);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleDateString('en-US', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric'
-    });
-  };
+    // State for managing the loading/feedback modal
+    const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+    const [modalMessage, setModalMessage] = useState("");
+    const [modalType, setModalType] = useState("loading"); // 'loading', 'success', 'error', 'info'
+    // State to apply temporary styles for PDF capture
+    const [captureStyles, setCaptureStyles] = useState({});
 
-  const formatCurrency = (amount, included = false) => {
-    if (included) return "Included";
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount || 0);
-  };
+    if (!userData || userLoading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-gray-600 text-lg">Loading user data...</div>
+            </div>
+        );
+    }
 
-  return (
-    <div className="max-w-4xl mx-auto bg-[#F5F2F0] font-['Arial'] text-gray-800">
-      {/* Header */}
-      <div className="bg-[#4A3F43] text-white p-8">
-        <h1 className="text-5xl font-light mb-6">ESTIMATE</h1>
-        <div className="border-b border-white/20 pb-2 mb-6">
-          <h2 className="text-xl font-light mb-1">{estimateData.functionName}</h2>
-          <h3 className="text-lg font-light opacity-90">{estimateData.subFunction}</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <div className="text-sm opacity-80">Date Information</div>
-            <div>{formatDate(estimateData.startDate)}</div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-sm opacity-80">Estimate Number</div>
-            <div>{estimateData._id}</div>
-          </div>
+    const firebaseUID = userData.firebaseUID;
+    console.log("Studio (User) Data:", studio);
+    console.log("Estimate Data:", estimate);
+    console.log("Firebase UID:", firebaseUID);
+
+
+    const printRef = useRef(null);
+
+    const defaultEstimate = {
+        _id: "ES-0269",
+        clientName: "Emily Hana",
+        functionName: "Wedding Photography Estimate",
+        location: "456 Client Street, Client town, ST 67890",
+        phoneNumber: "(987) 654-3210",
+        startDate: new Date("2029-01-30"),
+        endDate: null,
+        description: "A detailed estimate for wedding photography services covering the ceremony and reception.",
+        services: [
+            { serviceName: "Basic Package", description: "4 hours of coverage, 200 edited photos", total: 1000 },
+            { serviceName: "Standard Package", description: "6 hours of coverage, 300 edited photos, 1 album", total: 1500 },
+            { serviceName: "Premium Package", description: "8 hours of coverage, 400 edited photos, 2 albums", total: 2000 },
+            { serviceName: "Deluxe Package", description: "Full-day coverage, 500 edited photos, 3 albums", total: 2500 },
+        ],
+        subtotal: 7000,
+        discountType: "amount",
+        discount: 0,
+        tax: { percentage: 0, amount: 0 },
+        netTotal: 7000,
+        notes: "A deposit of $500 is required to secure the booking.",
+        terms: ["Cancellation policy: Deposit is non-refundable if cancelled less than 60 days before the event."],
+    };
+
+    const estimateData = { ...defaultEstimate, ...estimate };
+    const studioData = {
+        name: "Perfect Moment",
+        phone: "(123) 456-7890",
+        email: "info@perfectmoment.com",
+        address: { d_address: "123 Photography Lane", city: "Amityville", state: "ST", pincode: "12345" },
+        logoUrl: null,
+        website: null,
+        socialLinks: { youtube: null, instagram: null, facebook: null },
+        policies: null,
+        notes: null,
+        ...studio,
+    };
+
+    const finalNotes = estimateData.notes;
+
+    let finalTerms = [];
+    if (studioData.policies && typeof studioData.policies === 'string' && studioData.policies.trim() !== '') {
+        finalTerms = studioData.policies.split('\n').map(term => term.trim()).filter(term => term !== '');
+    } else if (estimateData.terms && Array.isArray(estimateData.terms) && estimateData.terms.length > 0) {
+        finalTerms = estimateData.terms;
+    }
+
+
+    let displayDiscountAmount = 0;
+    let discountDescription = "";
+
+    if (estimateData.discountType === "percentage" && typeof estimateData.discount === 'number' && estimateData.discount > 0) {
+        displayDiscountAmount = (estimateData.subtotal * estimateData.discount) / 100;
+        discountDescription = `${estimateData.discount}%`;
+    } else if (estimateData.discountType === "amount" && typeof estimateData.discount === 'number' && estimateData.discount > 0) {
+        displayDiscountAmount = estimateData.discount;
+        discountDescription = "";
+    }
+
+    const amountAfterDiscount = estimateData.subtotal - displayDiscountAmount;
+
+    let actualTaxAmount = 0;
+    if (estimateData.tax) {
+        if (typeof estimateData.tax.amount === 'number' && estimateData.tax.amount > 0) {
+            actualTaxAmount = estimateData.tax.amount;
+        } else if (typeof estimateData.tax.percentage === 'number' && estimateData.tax.percentage > 0) {
+            actualTaxAmount = (amountAfterDiscount * estimateData.tax.percentage) / 100;
+        }
+    }
+
+    let calculatedNetTotal = amountAfterDiscount + actualTaxAmount;
+
+
+    const formatCurrency = (amount) => {
+        if (typeof amount !== 'number' || isNaN(amount)) {
+            return 'N/A';
+        }
+        return new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(amount);
+    };
+
+    const formatDate = (date) => {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) {
+            return 'Invalid Date';
+        }
+        return d.toLocaleDateString("en-IN", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        });
+    };
+
+    const getServiceIcon = (serviceName) => {
+        if (serviceName.toLowerCase().includes("coverage") || serviceName.toLowerCase().includes("photography")) {
+            return <Camera className="w-5 h-5" />;
+        }
+        if (serviceName.toLowerCase().includes("engagement") || serviceName.toLowerCase().includes("session")) {
+            return <ImageIcon className="w-5 h-5" />;
+        }
+        if (serviceName.toLowerCase().includes("album") || serviceName.toLowerCase().includes("prints")) {
+            return <BookOpen className="w-5 h-5" />;
+        }
+        return <Camera className="w-5 h-5" />;
+    };
+
+    // --- Local function to generate PDF Blob from the current estimate's rendered view ---
+    const generatePdfBlobFromCurrentView = async () => {
+        setModalMessage("Generating PDF...");
+        setModalType("loading");
+        const input = printRef.current;
+        if (!input) {
+            console.error("Element for PDF conversion not found.");
+            setModalMessage("Error: PDF element not found.");
+            setModalType("error");
+            return null;
+        }
+
+        // Apply temporary styles for PDF capture to ensure A4 dimensions and desktop-like layout
+        // IMPORTANT: Added `color-adjust: exact` and `print-color-adjust: exact`
+        setCaptureStyles({
+            width: '210mm', // A4 width
+            minHeight: '297mm', // A4 height
+            position: 'absolute',
+            left: '-9999px', // Move off-screen to avoid visual flicker during capture
+            top: '-9999px',
+            boxShadow: 'none', // Remove shadow for capture
+            borderRadius: '0', // Remove border-radius for capture
+            backgroundColor: '#ffffff', // Ensure white background for PDF
+            // Crucial for forcing colors and backgrounds in html2canvas/print
+            WebkitPrintColorAdjust: 'exact', // For Webkit browsers (Chrome, Safari)
+            colorAdjust: 'exact', // Standard property
+        });
+
+        // Wait for styles to apply (brief timeout)
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        try {
+            const canvas = await html2canvas(input, {
+                scale: 1.5, // Higher scale for better resolution, typically 2 or 3
+                useCORS: true, // Important for images loaded from external sources (e.g., logoUrl, background)
+                logging: false, // Disable html2canvas logging
+                backgroundColor: null, // Let the applied background color from CSS take effect
+                // Attempt to render with full color support
+                allowTaint: true, // Allows images from other origins to be drawn, but taints the canvas
+                ignoreElements: (element) => {
+                    // Ignore elements with 'no-print' class during capture
+                    return element.classList.contains('no-print');
+                },
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            // Add image to the first page
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            // Add new pages for remaining content
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight; // Calculate position for the next page
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            return pdf.output('blob'); // Return the PDF as a Blob
+
+        } catch (error) {
+            console.error("Error generating PDF Blob:", error);
+            setModalMessage("Failed to generate PDF. Please try again.");
+            setModalType("error");
+            return null;
+        } finally {
+            // Restore original styles after canvas capture
+            setCaptureStyles({}); // Clear temporary styles
+        }
+    };
+
+    // --- Button Handlers ---
+
+    const handleDownloadPdf = async () => {
+        if (isProcessingPdf) return;
+        setIsProcessingPdf(true);
+        setModalMessage("Preparing PDF for download...");
+        setModalType("loading");
+
+        try {
+            const pdfBlob = await generatePdfBlobFromCurrentView(); // Use local function to get the blob
+            if (pdfBlob) {
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${estimateData.functionName}_${estimateData.clientName}_Estimate.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setModalMessage("PDF downloaded successfully!");
+                setModalType("success");
+            } else {
+                // Error message already set by generatePdfBlobFromCurrentView if it failed
+            }
+        } catch (error) {
+            console.error("Error during download process:", error);
+            setModalMessage(`Failed to download: ${error.message}`);
+            setModalType("error");
+        } finally {
+            setIsProcessingPdf(false);
+            if (modalType === "success" || modalType === "error" || modalType === "info") {
+                setTimeout(() => setModalMessage(""), 3000);
+            }
+        }
+    };
+
+    const handleShare = async () => {
+        if (isProcessingPdf) return;
+        setIsProcessingPdf(true);
+        setModalMessage("Preparing estimate for sharing...");
+        setModalType("loading");
+
+        try {
+            // 1. Generate PDF Blob from the current view
+            const pdfBlob = await generatePdfBlobFromCurrentView();
+            if (!pdfBlob) {
+                return; // Exit if PDF generation failed (message already set)
+            }
+
+            // 2. Upload PDF to S3 via Backend (using the imported utility function)
+            const pdfUrl = await uploadPdfToS3Backend(
+                pdfBlob,
+                estimateData._id,
+                estimateData.clientName,
+                estimateData.functionName,
+                firebaseUID,
+                setModalMessage,
+                setModalType
+            );
+            if (!pdfUrl) {
+                return; // Exit if upload failed (message already set)
+            }
+
+            // 3. Update Estimate Model in MongoDB via Backend (using the imported utility function)
+            const dbUpdateSuccess = await updateEstimateInDb(
+                estimateData._id,
+                pdfUrl,
+                firebaseUID,
+                setModalMessage,
+                setModalType
+            );
+            if (!dbUpdateSuccess) {
+                return; // Exit if DB update failed (message already set)
+            }
+
+            // 4. Share the PDF URL via Web Share API or WhatsApp
+            const shareTitle = `Estimate from ${studioData.studioName}`; // Corrected from studioData.studioName to studioData.studioName
+            const whatsappMessage = `Hi ${estimateData.clientName},\n\nHere's your estimate from ${studioData.studioName}:\n${pdfUrl}\n\nEstimate ID: ${estimateData._id}\n\nLooking forward to working with you!`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: shareTitle,
+                        text: whatsappMessage,
+                        url: pdfUrl,
+                    });
+                    console.log('Content shared successfully via Web Share API');
+                    setModalMessage("Estimate shared successfully ✅");
+                    setModalType("success");
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log('Web Share API cancelled by user.');
+                        setModalMessage("Sharing cancelled.");
+                        setModalType("info"); // User cancelled, not an error
+                    } else {
+                        console.error('Error sharing via Web Share API:', error);
+                        setModalMessage("Failed to share via Web Share API. Opening WhatsApp directly.");
+                        setModalType("error");
+                        window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+                    }
+                }
+            } else {
+                // Fallback for browsers that do not support Web Share API
+                setModalMessage("Web Share API not supported. Opening WhatsApp directly.");
+                setModalType("info"); // Informational message
+                window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+            }
+
+        } catch (error) {
+            console.error("Error during share process:", error);
+            setModalMessage(`Failed to share estimate: ${error.message}`);
+            setModalType("error");
+        } finally {
+            setIsProcessingPdf(false);
+            if (modalType === "success" || modalType === "error" || modalType === "info") {
+                setTimeout(() => setModalMessage(""), 3000);
+            }
+        }
+    };
+
+
+    const handleGoBack = () => {
+        if (onGoBack) {
+            onGoBack();
+        } else {
+            window.history.back();
+        }
+    };
+
+    // Loading/Feedback Modal Component
+    const LoadingModal = ({ message, type }) => {
+        if (!message) return null; // Only show if there's a message
+
+        let icon;
+        let textColor;
+        switch (type) {
+            case 'loading':
+                icon = <FaSpinner className="animate-spin text-4xl" />;
+                textColor = "text-purple-500"; // Purple
+                break;
+            case 'success':
+                icon = <FaCheckCircle className="text-4xl" />;
+                textColor = "text-green-500";
+                break;
+            case 'error':
+                icon = <FaTimesCircle className="text-4xl" />;
+                textColor = "text-red-500";
+                break;
+            case 'info': // For cases like Web Share API not supported
+                icon = <FaInfoCircle className="text-4xl" />;
+                textColor = "text-gray-500";
+                break;
+            default:
+                icon = null;
+                textColor = "text-gray-700";
+        }
+
+        return (
+            <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center max-w-sm text-center">
+                    {icon && <div className={`mb-4 ${textColor}`}>{icon}</div>}
+                    <p className="text-lg font-semibold text-gray-800">{message}</p>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="min-h-screen bg-white p-4 sm:p-6 flex flex-col items-center">
+            {isProcessingPdf && <LoadingModal message={modalMessage} type={modalType} />}
+
+            <div className="w-full max-w-4xl flex justify-between items-center mb-4 no-print p-4 sm:p-0">
+        <button
+          onClick={handleGoBack}
+          className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center text-gray-700"
+          aria-label="Go back"
+        >
+          <FaArrowLeft size={20} />
+        </button>
+        <div className="flex space-x-3">
+          
+          <ChooseTemplateBtn/>
+          <button
+            onClick={handleShare}
+            className="p-2 px-4 rounded-xl font-bold bg-blue-500 hover:bg-blue-600 transition-colors text-white flex items-center justify-center text-sm"
+            aria-label="Share estimate"
+            disabled={isProcessingPdf}
+          >
+            <FaShareAlt className="mr-2" size={16} />
+            {isProcessingPdf && modalType === "loading"
+              ? " Sharing..."
+              : " Share"}
+          </button>
+          <button
+            onClick={handleDownloadPdf}
+            className="p-2 px-4 rounded-xl font-bold bg-green-500 hover:bg-green-600 transition-colors text-white flex items-center justify-center text-sm"
+            aria-label="Download PDF"
+            disabled={isProcessingPdf}
+          >
+            <FaDownload className="mr-2" size={16} />
+            {isProcessingPdf && modalType === "loading"
+              ? " Generating..."
+              : " Download PDF"}
+          </button>
         </div>
       </div>
 
-      {/* Client Information */}
-      <div className="p-8">
-        <div className="mb-8">
-          <div className="text-sm text-gray-600 mb-2">Estimate to:</div>
-          <div className="text-lg font-medium mb-1">{estimateData.clientName}</div>
-          <div className="text-gray-600">{estimateData.location}</div>
-          {estimateData.phoneNumber && (
-            <div className="text-gray-600 mt-1">
-              <Phone className="w-4 h-4 inline-block mr-1" />
-              {estimateData.phoneNumber}
-            </div>
-          )}
-        </div>
+            <div
+                ref={printRef}
+                className="w-[210mm] min-h-[297mm] mx-auto bg-white text-gray-800 shadow-lg print-a4-document-wrapper overflow-hidden" // Fixed width for A4
+                style={captureStyles} // Apply dynamic styles for PDF capture
+            >
+                <div className="flex flex-col h-full"> {/* Flex container for content */}
+                    {/* Header Section */}
+                    <div className="flex justify-between items-start p-8 pb-4 bg-purple-50"> {/* Light purple background */}
+                        <div className="flex flex-col items-start w-1/2">
+                            {studioData.logoUrl ? (
+                                <img src={studioData.logoUrl} alt="Studio Logo" className="h-20 w-auto object-contain mb-4" />
+                            ) : (
+                                <div className="h-20 w-20 flex items-center justify-center text-5xl font-bold text-purple-500 bg-white rounded-full border-2 border-purple-500 mb-4">
+                                    {studioData.studioName ? studioData.studioName.charAt(0).toUpperCase() : "S"}
+                                </div>
+                            )}
+                            <h1 className="text-4xl font-extrabold text-purple-500 font-['Playfair_Display'] mb-2 tracking-wide">
+                                {studioData.studioName}
+                            </h1>
+                            <div className="text-sm text-gray-600">
+                                {studioData.address.d_address}, {studioData.address.city}, {studioData.address.state}, {studioData.address.pincode}
+                            </div>
+                            <div className="flex items-center text-sm text-gray-600 mt-2">
+                                <FaPhone className="mr-2 text-pink-400" />
+                                {studioData.phone}
+                            </div>
+                            <div className="flex items-center text-sm text-gray-600 mt-1">
+                                <FaEnvelope className="mr-2 text-pink-400" />
+                                {studioData.email}
+                            </div>
+                        </div>
 
-        {/* Services Table */}
-        <div className="mb-8 overflow-hidden rounded-sm">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-[#4A3F43] text-white">
-                <th className="text-left py-3 px-4 font-normal">Description</th>
-                <th className="text-center py-3 px-4 font-normal">QTY</th>
-                <th className="text-right py-3 px-4 font-normal">Unit Price</th>
-                <th className="text-right py-3 px-4 font-normal">Total Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {estimateData.services.map((service, index) => (
-                <tr key={index} className="bg-[#E6E6E6] even:bg-[#F2F2F2] border-b border-gray-300">
-                  <td className="py-3 px-4">{service.serviceName}</td>
-                  <td className="text-center py-3 px-4">
-                    {service.description || "1"}
-                  </td>
-                  <td className="text-right py-3 px-4">
-                    {service.rate ? `$${service.rate}/hr` : (service.included ? "Included" : "")}
-                  </td>
-                  <td className="text-right py-3 px-4">
-                    {formatCurrency(service.total, service.included)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="bg-[#4A3F43] text-white py-3 px-4">
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div className="text-sm">Subtotal</div>
-              <div className="text-right">{formatCurrency(estimateData.subtotal)}</div>
-              {estimateData.discount > 0 && (
-                <>
-                  <div className="text-sm">Discount</div>
-                  <div className="text-right text-green-300">-{formatCurrency(estimateData.discount)}</div>
-                </>
-              )}
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t border-white/20">
-              <div className="font-medium">TOTAL ESTIMATE</div>
-              <div className="font-medium">{formatCurrency(estimateData.netTotal)}</div>
-            </div>
-          </div>
-        </div>
+                        <div className="flex flex-col items-end text-right w-1/2 mt-4">
+                            <h2 className="text-6xl font-['Playfair_Display'] text-pink-400 mb-4 font-bold">Estimate</h2>
+                            <p className="text-sm text-gray-600 mb-1">Estimate ID: <span className="font-semibold text-purple-500">{estimateData._id}</span></p>
+                            <p className="text-sm text-gray-600 mb-1">Date: <span className="font-semibold text-purple-500">{formatDate(new Date())}</span></p>
+                        </div>
+                    </div>
 
-        {/* Terms and Conditions */}
-        <div className="mb-8">
-          <h4 className="font-bold mb-3">Terms and Conditions:</h4>
-          <ul className="list-disc list-inside text-sm text-gray-600 space-y-2">
-            {estimateData.terms.map((term, index) => (
-              <li key={index}>{term}</li>
-            ))}
-          </ul>
-        </div>
+                    {/* Client Information Section */}
+                    <div className="p-8 py-6 bg-white border-b-2 border-dashed border-gray-300">
+                        <h3 className="text-xl font-bold text-purple-500 mb-3 font-['Montserrat']">Estimate For</h3>
+                        <p className="text-lg font-semibold text-gray-800">{estimateData.clientName}</p>
+                        <p className="text-md text-gray-600">{estimateData.functionName}</p>
+                        {estimateData.location && (
+                            <p className="text-sm text-gray-600"><FaMapMarkerAlt className="inline-block mr-1 text-gray-500" />{estimateData.location}</p>
+                        )}
+                        {estimateData.startDate && (
+                            <p className="text-sm text-gray-600">
+                                Date: {formatDate(estimateData.startDate)}
+                                {estimateData.endDate && ` - ${formatDate(estimateData.endDate)}`}
+                            </p>
+                        )}
+                        {estimateData.phoneNumber && (
+                            <p className="text-sm text-gray-600"><FaPhone className="inline-block mr-1 text-gray-500" />{estimateData.phoneNumber}</p>
+                        )}
+                    </div>
 
-        {/* Signature */}
-        <div className="mt-12">
-          <div className="border-t border-gray-400 w-48">
-            <div className="text-sm text-gray-600 mt-2">THANK YOU FOR YOUR BUSINESS!</div>
-          </div>
+                    {/* Services Table Section */}
+                    <div className="p-8 flex-grow">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[#F8F3FC] text-purple-500 uppercase text-sm">
+                                    <th className="py-3 px-4 rounded-tl-lg">Service</th>
+                                    <th className="py-3 px-4">Description</th>
+                                    <th className="py-3 px-4 text-right rounded-tr-lg">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {estimateData.services.map((service, index) => (
+                                    <tr key={index} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                        <td className="py-3 px-4 flex items-center font-semibold text-gray-800">
+                                            {getServiceIcon(service.serviceName)}
+                                            <span className="ml-2">{service.serviceName}</span>
+                                        </td>
+                                        <td className="py-3 px-4 text-gray-600 text-sm">{service.description}</td>
+                                        <td className="py-3 px-4 text-right font-semibold text-gray-800">{formatCurrency(service.total)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {/* Totals Section */}
+                        <div className="flex justify-end mt-6">
+                            <div className="w-full sm:w-1/2">
+                                <div className="flex justify-between items-center py-2 border-t border-gray-300">
+                                    <span className="text-md font-medium text-gray-700">Subtotal:</span>
+                                    <span className="text-md font-medium text-gray-800">{formatCurrency(estimateData.subtotal)}</span>
+                                </div>
+
+                                {displayDiscountAmount > 0 && (
+                                    <div className="flex justify-between items-center py-2">
+                                        <span className="text-md font-medium text-red-500">Discount {discountDescription ? `(${discountDescription})` : ''}:</span>
+                                        <span className="text-md font-medium text-red-500">- {formatCurrency(displayDiscountAmount)}</span>
+                                    </div>
+                                )}
+
+                                {actualTaxAmount > 0 && (
+                                    <div className="flex justify-between items-center py-2">
+                                        <span className="text-md font-medium text-gray-700">Tax ({estimateData.tax.percentage}%):</span>
+                                        <span className="text-md font-medium text-gray-800">{formatCurrency(actualTaxAmount)}</span>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between items-center py-3 mt-4 bg-pink-400 text-white rounded-lg px-4">
+                                    <span className="text-xl font-bold">Total:</span>
+                                    <span className="text-xl font-bold">{formatCurrency(calculatedNetTotal)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Notes and Terms */}
+                    <div className="p-8 pt-4 border-t-2 border-dashed border-gray-300">
+                        {finalNotes && (
+                            <div className="mb-6">
+                                <h4 className="text-lg font-bold text-purple-500 mb-2 font-['Montserrat']">Notes:</h4>
+                                <p className="text-sm text-gray-700 leading-relaxed">{finalNotes}</p>
+                            </div>
+                        )}
+
+                        {finalTerms.length > 0 && (
+                            <div>
+                                <h4 className="text-lg font-bold text-purple-500 mb-2 font-['Montserrat']">Terms & Conditions:</h4>
+                                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                    {finalTerms.map((term, index) => (
+                                        <li key={index}>{term}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer Section */}
+                    <div className="p-8 pt-6 bg-purple-50 text-center text-gray-600 text-sm">
+                        <div className="flex justify-center space-x-4 mb-3">
+                            {studioData.website && (
+                                <a href={`https://${studioData.website}`} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline">
+                                    {studioData.website}
+                                </a>
+                            )}
+                            {(studioData.socialLinks?.youtube || studioData.socialLinks?.instagram || studioData.socialLinks?.facebook) && (
+                                <div className="flex justify-center space-x-3">
+                                    {studioData.socialLinks?.youtube && (
+                                        <a href={studioData.socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:text-purple-500">
+                                            <FaYoutube size={18} />
+                                        </a>
+                                    )}
+                                    {studioData.socialLinks?.instagram && (
+                                        <a href={studioData.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:text-purple-500">
+                                            <FaInstagram size={18} />
+                                        </a>
+                                    )}
+                                    {studioData.socialLinks?.facebook && (
+                                        <a href={studioData.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:text-purple-500">
+                                            <FaFacebook size={18} />
+                                        </a>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <p>&copy; {new Date().getFullYear()} {studioData.studioName}. All rights reserved.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ThemeElegant;

@@ -1,418 +1,655 @@
-// ThemeModern.jsx
-import React from "react";
-import {
-  Calendar,
-  MapPin,
-  Globe,
-  Phone,
-  Mail,
-  User,
-  FileText,
-  Clock,
-  CheckCircle,
-  Tag,
-  TrendingUp,
-  DollarSign,
-  Camera,
-  Image,
-  BookOpen,
-  QrCode,
-} from "lucide-react";
+import React, { useRef, useState, useEffect } from "react";
+import html2canvas from 'html2canvas-pro';
+import jsPDF from 'jspdf';
+import { FaShareAlt, FaDownload, FaArrowLeft, FaSpinner, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaPhone, FaEnvelope, FaGlobe, FaCreditCard, FaCamera } from "react-icons/fa";
+import { useUser } from '../../context/UserContext'; // Adjust path if necessary
 
-const ThemeModern = ({ estimate, studio }) => {
-  // --- Data Initialization and Fallbacks ---
-  // Use actual props, provide fallbacks for development/missing data
-  const data = estimate || {};
-  const studioData = studio || {};
+// Import the utility functions for S3 upload and database update
+import { uploadPdfToS3Backend, updateEstimateInDb } from "../../Utils/pdfShareUtils"; // Adjust path as needed
 
-  // Default values for common fields if they are missing
-  const defaultEstimate = {
-    _id: "EST001",
-    clientName: "Client Name",
-    functionName: "Event Type",
-    location: "Location TBD",
-    phoneNumber: "N/A",
-    description: "This is a comprehensive estimate outlining various services.",
-    startDate: new Date(),
-    endDate: null,
-    services: [
-      { serviceName: "Sample Photography Package", description: "Standard coverage for 4 hours", total: 10000 },
-      { serviceName: "Basic Photo Album", description: "20-page standard album", total: 5000 },
-    ],
-    subtotal: 15000,
-    discount: 0,
-    discountType: "amount",
-    netTotal: 15000,
-    status: "draft",
-    createdAt: new Date(),
-    validUntil: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-    notes: "Please review the details carefully and contact us for any modifications."
-  };
+const ThemeModern = ({ estimate, studio, onGoBack }) => {
+    const { userData, loading: userLoading } = useUser();
 
-  const defaultStudio = {
-    studioName: "Your Creative Studio",
-    email: "contact@yourstudio.com",
-    phone: "+91 98765 43210",
-    address: {
-      d_address: "123 Studio Lane",
-      city: "Udaipur",
-      state: "Rajasthan",
-      pincode: "313001",
-      country: "India"
-    },
-    website: "www.yourstudio.com",
-    caption: "Capturing your precious moments.",
-    logoUrl: "", // Handled by custom SVG
-    policies: "All estimates are valid for 30 days. A 25% advance is required to confirm booking. Cancellations within 7 days of the event are non-refundable."
-  };
+    // State for managing the loading/feedback modal
+    const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+    const [modalMessage, setModalMessage] = useState("");
+    const [modalType, setModalType] = useState("loading"); // 'loading', 'success', 'error', 'info'
 
-  // Merge provided data with defaults
-  const estimateData = { ...defaultEstimate, ...data };
-  const currentStudioData = { ...defaultStudio, ...studioData };
+    // State to apply temporary styles for PDF capture
+    const [captureStyles, setCaptureStyles] = useState({});
 
-  // --- Helper Functions ---
-  const getFullAddress = (address) => {
-    if (!address) return 'Address not available';
-    const parts = [address.d_address, address.city, address.state, address.pincode, address.country].filter(Boolean);
-    return parts.join(', ');
-  };
-  const fullAddress = getFullAddress(currentStudioData.address);
+    // Ref for the DOM element to be converted to PDF
+    const printRef = useRef(null);
 
-  const formatDate = (dateInput) => {
-    if (!dateInput) return 'N/A';
-    const date = new Date(dateInput);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-  const formatDateTime = (dateInput) => {
-    if (!dateInput) return 'N/A';
-    const date = new Date(dateInput);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
-  };
-  const getStatusClasses = (status) => {
-    const statusMap = {
-      draft: 'bg-gray-100 text-gray-700',
-      sent: 'bg-blue-100 text-blue-700',
-      viewed: 'bg-purple-100 text-purple-700',
-      accepted: 'bg-green-100 text-green-700',
-      rejected: 'bg-red-100 text-red-700',
+    // Default data structure for preview/fallback
+    const defaultQuotation = {
+        _id: "QTN-PM-001", // Quotation ID
+        clientName: "Emily Hana",
+        location: "456 Client Street, Client town, ST 67890",
+        phoneNumber: "(987) 654-3210",
+        estimateDate: new Date("2024-07-19"),
+        dueDate: new Date(new Date().setDate(new Date("2024-07-19").getDate() + 14)),
+        description: "A detailed estimate for wedding photography services covering the ceremony and reception.",
+        items: [
+            { name: "Wedding Photography Session - 8 Hours", price: 1500, qty: 1, total: 1500 },
+            { name: "Portrait Session - Studio Lighting Setup", price: 800, qty: 1, total: 800 },
+            { name: "Event Coverage - Corporate Headshots (50 shots)", price: 1200, qty: 1, total: 1200 },
+            { name: "Photo Editing & Retouching - Premium Package", price: 950, qty: 1, total: 950 }
+        ],
+        subtotal: 4450,
+        discountType: "amount",
+        discount: 0,
+        tax: { percentage: 5, amount: 222.50 },
+        total: 4672.50,
+        paymentMethod: "Credit Card",
+        notes: "A deposit of $500 is required to secure the booking.",
+        termsAndConditions: [
+            "All photos will be delivered within 7-10 business days via digital gallery",
+            "High-resolution images included with full commercial usage rights",
+            "Rush delivery available for additional fee - please contact studio for rates"
+        ],
     };
-    return statusMap[status] || statusMap.draft;
-  };
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
-  };
 
-  // Notes can be string or array, ensure it's an array for mapping
-  const estimateNotesArray = Array.isArray(estimateData.notes) ? estimateData.notes : (estimateData.notes ? estimateData.notes.split('\n').filter(Boolean) : []);
+    const defaultStudioDetails = {
+        name: "Perfect Moment Photography Studio",
+        brandName: "PHOTOGRAPHY STUDIO",
+        tagline: "Capture Your Moments",
+        logoUrl: null,
+        phone: "(123) 456-7890",
+        email: "info@perfectmoment.com",
+        address: { d_address: "123 Photography Lane", city: "Amityville", state: "ST", pincode: "12345" },
+        website: "www.photostudio.com",
+        socialLinks: { youtube: null, instagram: null, facebook: null },
+        policies: null,
+        notes: null,
+    };
 
+    // Merge provided props with defaults
+    const estimateData = { ...defaultQuotation, ...estimate };
+    const studioDetails = { ...defaultStudioDetails, ...studio };
 
-  // Function to get icon based on service name (simplified for demo)
-  const getServiceIcon = (serviceName) => {
-    if (serviceName && serviceName.toLowerCase().includes("coverage")) {
-      return <Camera size={18} className="inline-block mr-2 text-gray-600" />;
-    }
-    if (serviceName && serviceName.toLowerCase().includes("engagement")) {
-      return <Image size={18} className="inline-block mr-2 text-gray-600" />;
-    }
-    if (serviceName && serviceName.toLowerCase().includes("album")) {
-      return <BookOpen size={18} className="inline-block mr-2 text-gray-600" />;
-    }
-    return <Tag size={18} className="inline-block mr-2 text-gray-600" />; // Default icon
-  };
+    // Recalculate totals based on items for accuracy
+    const calculateTotals = () => {
+        let calculatedSubtotal = estimateData.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        let displayDiscountAmount = 0;
 
-  return (
-    <div className="max-w-4xl mx-auto bg-white font-['Open_Sans'] text-gray-800 p-8 shadow-lg">
-      {/* Top Header - Studio Info */}
-      <div className="text-center mb-8">
-        {/* Custom 'G' Logo SVG (or use currentStudioData.logoUrl if provided) */}
-        {currentStudioData.logoUrl ? (
-             <img src={currentStudioData.logoUrl} alt={`${currentStudioData.studioName} Logo`} className="h-16 w-auto mx-auto mb-4" />
-        ) : (
-          <svg className="mx-auto mb-4 w-16 h-16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="48" stroke="#D3B89B" strokeWidth="2"/>
-            <path d="M57.6 30.8C57.6 28.5 57 26.6 55.7 25.1C54.4 23.6 52.7 22.8 50.7 22.8C48.7 22.8 47 23.6 45.7 25.1C44.4 26.6 43.8 28.5 43.8 30.8H39.8C39.8 27.7 40.7 25 42.6 22.8C44.6 20.6 47.4 19.5 51 19.5C54.7 19.5 57.5 20.6 59.4 22.8C61.3 25 62.3 27.7 62.3 30.8V44.4C62.3 47.6 61.6 50.5 60.2 53.1C58.8 55.7 56.8 57.7 54.3 59.1C51.8 60.5 49.1 61.2 46.2 61.2C43.3 61.2 40.7 60.6 38.3 59.3C36 58 34.2 56.3 32.9 54.2C31.6 52.1 30.9 49.8 30.9 47.3H34.9C34.9 49.4 35.5 51.2 36.8 52.7C38.1 54.2 39.8 55 41.8 55C43.8 55 45.5 54.2 46.8 52.7C48.1 51.2 48.7 49.4 48.7 47.3V38.1H57.6V30.8ZM48.7 63.8C51 63.8 53 64.6 54.6 66.2C56.2 67.8 57 69.8 57 72.2V79.2H53V72.2C53 70.1 52.4 68.3 51.1 66.8C49.8 65.3 48.1 64.5 46.1 64.5C44.1 64.5 42.4 65.3 41.1 66.8C39.8 68.3 39.2 70.1 39.2 72.2V79.2H35.2V72.2C35.2 69.8 35.9 67.8 37.5 66.2C39.1 64.6 41.1 63.8 43.5 63.8H48.7Z" fill="#D3B89B"/>
-          </svg>
-        )}
-        
-        <h1 className="text-3xl tracking-widest text-gray-800 uppercase font-light mb-2">
-          {currentStudioData.studioName || "Your Studio Name"}
-        </h1>
-        {currentStudioData.caption && (
-          <p className="text-gray-600 text-sm mb-4">{currentStudioData.caption}</p>
-        )}
-        <div className="border-t border-gray-300 w-full mx-auto"></div>
-      </div>
+        if (estimateData.discountType === "percentage" && typeof estimateData.discount === 'number' && estimateData.discount > 0) {
+            displayDiscountAmount = (calculatedSubtotal * estimateData.discount) / 100;
+        } else if (estimateData.discountType === "amount" && typeof estimateData.discount === 'number' && estimateData.discount > 0) {
+            displayDiscountAmount = estimateData.discount;
+        }
+        const amountAfterDiscount = calculatedSubtotal - displayDiscountAmount;
 
-      {/* Main Estimate Title and Client Info */}
-      <div className="text-center mb-8">
-        <h2 className="text-7xl font-['Dancing_Script'] text-gray-900 mb-6 font-semibold">
-          Estimate
-        </h2>
-        <p className="text-lg text-gray-700 mb-2">Estimate For</p>
-        <h3 className="text-3xl font-semibold text-gray-900 mb-2">
-          {estimateData.clientName || defaultEstimate.clientName}
-        </h3>
-        <p className="text-xl text-gray-700">
-          {estimateData.functionName || defaultEstimate.functionName}
-        </p>
-        <div className="border-t border-gray-300 w-full mx-auto mt-6"></div>
-      </div>
+        let actualTaxAmount = 0;
+        if (estimateData.tax) {
+            if (typeof estimateData.tax.amount === 'number' && estimateData.tax.amount > 0) {
+                actualTaxAmount = estimateData.tax.amount;
+            } else if (typeof estimateData.tax.percentage === 'number' && estimateData.tax.percentage > 0) {
+                actualTaxAmount = (amountAfterDiscount * estimateData.tax.percentage) / 100;
+            }
+        }
+        let finalNetTotal = amountAfterDiscount + actualTaxAmount;
 
-      {/* Client & Event Details and Studio Contact Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        {/* Client & Event Details Card */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <User className="w-5 h-5 mr-2 text-blue-500" />
-            Client & Event Details
-          </h3>
-          <div className="space-y-3 text-gray-700 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Client Name:</span>
-              <span>{estimateData.clientName || defaultEstimate.clientName}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Function:</span>
-              <span>{estimateData.functionName || defaultEstimate.functionName}</span>
-            </div>
-            {estimateData.location && (
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Location:</span>
-                <span className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1.5" />
-                  {estimateData.location}
-                </span>
-              </div>
-            )}
-            {estimateData.phoneNumber && (
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Client Phone:</span>
-                <span className="flex items-center">
-                  <Phone className="w-4 h-4 mr-1.5" />
-                  {estimateData.phoneNumber}
-                </span>
-              </div>
-            )}
-            {estimateData.startDate && (
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Event Date(s):</span>
-                <span className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1.5" />
-                  {formatDateTime(estimateData.startDate)}
-                  {estimateData.endDate && estimateData.startDate !== estimateData.endDate && ` - ${formatDateTime(estimateData.endDate)}`}
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Estimate ID:</span>
-              <span>#{estimateData._id?.slice(-4)?.toUpperCase() || '0000'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Status:</span>
-              <div className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getStatusClasses(estimateData.status)}`}>
-                <CheckCircle className="w-3 h-3 mr-1" />
-                {estimateData.status.charAt(0).toUpperCase() + estimateData.status.slice(1)}
-              </div>
-            </div>
-          </div>
-        </div>
+        return { calculatedSubtotal, displayDiscountAmount, actualTaxAmount, finalNetTotal };
+    };
 
-        {/* Studio Contact Card */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <Mail className="w-5 h-5 mr-2 text-green-500" />
-            Connect With Us
-          </h3>
-          <div className="space-y-3 text-gray-700 text-sm">
-            <div className="flex items-center">
-              <MapPin className="w-4 h-4 mr-2" />
-              <span>{fullAddress}</span>
-            </div>
-            {currentStudioData.phone && (
-              <div className="flex items-center">
-                <Phone className="w-4 h-4 mr-2" />
-                <span>{currentStudioData.phone}</span>
-              </div>
-            )}
-            {currentStudioData.email && (
-              <div className="flex items-center">
-                <Mail className="w-4 h-4 mr-2" />
-                <span>{currentStudioData.email}</span>
-              </div>
-            )}
-            {currentStudioData.socialLinks?.website && (
-              <div className="flex items-center">
-                <Globe className="w-4 h-4 mr-2" />
-                <a href={`http://${currentStudioData.socialLinks.website}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-gray-700">
-                  {currentStudioData.socialLinks.website}
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+    const { calculatedSubtotal, displayDiscountAmount, actualTaxAmount, finalNetTotal } = calculateTotals();
 
-      {/* Description & Key Dates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        {estimateData.description && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-orange-500" />
-              Estimate Description
-            </h3>
-            <p className="text-gray-700 leading-relaxed text-sm">{estimateData.description}</p>
-          </div>
-        )}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-indigo-500" />
-              Key Dates
-            </h3>
-            <div className="space-y-2 text-gray-700 text-sm">
-              <div className="flex justify-between">
-                <span className="font-semibold">Estimate Issued:</span>
-                <span>{formatDate(estimateData.createdAt)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Valid Until:</span>
-                <span>{formatDate(estimateData.validUntil || defaultEstimate.validUntil)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    const formatCurrency = (amount) => {
+        if (typeof amount !== 'number' || isNaN(amount)) {
+            return '$0.00';
+        }
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(amount);
+    };
 
-      {/* Services Table */}
-      <div className="mb-8">
-        <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-          <Tag className="w-6 h-6 mr-3 text-purple-500" />
-          Services Breakdown
-        </h3>
-        <div className="overflow-x-auto rounded-lg shadow-md border border-gray-100">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Service Description</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {estimateData.services && estimateData.services.length > 0 ? (
-                estimateData.services.map((service, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 flex items-center">
-                        {getServiceIcon(service.serviceName)}
-                        {service.serviceName || 'Unnamed Service'}
-                      </div>
-                      {service.description && (
-                        <p className="text-xs text-gray-600 mt-1 ml-7">
-                          {service.description}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
-                      {formatCurrency(service.total)}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="2" className="px-6 py-8 text-center text-gray-500 text-sm">
-                    No services listed for this estimate.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    const formatDate = (date) => {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) {
+            return 'Invalid Date';
+        }
+        return d.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+        }).toUpperCase().replace('.', '');
+    };
 
-      {/* Summary, Notes, Policies, and QR Code */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6 border-t border-gray-100">
-        {/* Financial Summary */}
-        <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-100">
-          <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-red-500" />
-            Financial Summary
-          </h4>
-          <div className="space-y-4 text-sm">
-            <div className="flex justify-between text-gray-700">
-              <span>Subtotal:</span>
-              <span className="font-semibold">{formatCurrency(estimateData.subtotal)}</span>
-            </div>
+    // --- PDF Generation Logic (CRITICAL for Page Cutting Issue and Margins) ---
+    const generatePdfBlobFromCurrentView = async () => {
+        setModalMessage("Generating PDF...");
+        setModalType("loading");
+        const input = printRef.current;
+        if (!input) {
+            console.error("Element for PDF conversion not found.");
+            setModalMessage("Error: PDF element not found.");
+            setModalType("error");
+            return null;
+        }
 
-            {estimateData.discount > 0 && (
-              <div className="flex justify-between text-green-700">
-                <span>
-                  Discount {estimateData.discountType === 'percentage' && estimateData.discount !== undefined ? `(${estimateData.discount}%)` : ''}:
-                </span>
-                <span className="font-semibold">- {formatCurrency(estimateData.discount)}</span>
-              </div>
-            )}
+        // Apply temporary styles for PDF capture to ensure A4 dimensions and desktop-like layout
+        setCaptureStyles({
+            width: '210mm', // A4 width
+            minHeight: '297mm', // A4 height (at least one page)
+            position: 'absolute',
+            left: '-9999px', // Move off-screen to avoid visual flicker during capture
+            top: '-9999px',
+            flexDirection: 'row', // Ensure flex items maintain row layout during capture
+            alignItems: 'stretch', // Ensure equal height columns
+            boxShadow: 'none', // Remove shadow for capture
+            borderRadius: '0', // Remove border-radius for capture
+            backgroundColor: '#FFFFFF', // Explicitly set background color for capture
+            overflow: 'hidden', // Hide scrollbars
+            '-webkit-print-color-adjust': 'exact', // Important for background images in html2canvas
+            'print-color-adjust': 'exact',
+        });
 
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              <div className="flex justify-between text-xl font-extrabold text-gray-900">
-                <span>TOTAL ESTIMATE:</span>
-                <span className="text-blue-600">{formatCurrency(estimateData.netTotal)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        // Wait for styles to apply (brief timeout)
+        await new Promise(resolve => setTimeout(resolve, 50));
 
-        {/* Notes and Policies */}
-        <div className="flex flex-col space-y-8">
-            {estimateNotesArray.length > 0 && (
-              <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-100">
-                <h4 className="font-bold text-gray-800 mb-3 text-lg flex items-center">
-                  <FileText className="w-5 h-5 mr-2 text-gray-500" />
-                  Estimate Notes
-                </h4>
-                <ul className="list-disc list-inside text-gray-600 leading-relaxed text-sm">
-                  {estimateNotesArray.map((note, index) => (
-                    <li key={index}>{note}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        try {
+            const canvas = await html2canvas(input, {
+                scale: 3, // Higher scale for better resolution
+                useCORS: true, // Important for images loaded from external sources (e.g., logoUrl, background)
+                logging: false, // Disable html2canvas logging
+                backgroundColor: null, // Let the element's background apply
+                allowTaint: true, // Allow tainting for cross-origin if needed
+                imageTimeout: 15000, // Longer timeout for images
+                ignoreElements: (element) => {
+                    return element.classList.contains('no-print'); // Ignore elements with this class
+                },
+            });
 
-            {currentStudioData.policies && (
-              <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-100">
-                <h4 className="font-bold text-gray-800 mb-3 text-lg flex items-center">
-                  <FileText className="w-5 h-5 mr-2 text-gray-500" />
-                  Important Policies
-                </h4>
-                <p className="text-gray-600 leading-relaxed text-sm">
-                  {currentStudioData.policies}
-                </p>
-              </div>
-            )}
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const pdf = new jsPDF('p', 'mm', 'a4');
 
-            {/* QR Code Placeholder - can be part of notes/policies section or standalone */}
-            <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                <h4 className="font-bold text-gray-800 mb-3 text-lg">Scan to Confirm</h4>
-                <div className="w-32 h-32 border border-gray-300 flex items-center justify-center bg-gray-50 text-gray-400">
-                    <QrCode size={50} />
-                    {/* Replace with actual QR code image or component */}
-                    {/* <img src="path/to/generated/qr_code.png" alt="QR Code" className="w-full h-full object-contain" /> */}
+            const A4_WIDTH = 210; // A4 width in mm
+            const A4_HEIGHT = 297; // A4 height in mm
+
+            // Define desired margins in mm for the PDF content
+            const PDF_MARGIN_X = 15; // Left/Right margin
+            const PDF_MARGIN_Y = 15; // Top/Bottom margin
+
+            const printableWidth = A4_WIDTH - (2 * PDF_MARGIN_X);
+            const printableHeight = A4_HEIGHT - (2 * PDF_MARGIN_Y);
+
+            const imgHeight = (canvas.height * printableWidth) / canvas.width;
+
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            let pageNum = 1;
+
+            while (heightLeft > 0) {
+                if (pageNum > 1) {
+                    pdf.addPage();
+                }
+
+                let yOffset = -position;
+                let sliceHeight = Math.min(printableHeight, heightLeft);
+
+                pdf.addImage(
+                    imgData, 'JPEG',
+                    PDF_MARGIN_X, PDF_MARGIN_Y,
+                    printableWidth, sliceHeight,
+                    null, 'FAST', 0,
+                    yOffset
+                );
+
+                heightLeft -= printableHeight;
+                position += printableHeight;
+                pageNum++;
+            }
+
+            return pdf.output('blob');
+
+        } catch (error) {
+            console.error("Error generating PDF Blob:", error);
+            setModalMessage("Failed to generate PDF. Please try again.");
+            setModalType("error");
+            return null;
+        } finally {
+            // Restore original styles after canvas capture
+            setCaptureStyles({});
+        }
+    };
+
+    // --- Button Handlers ---
+    const handleDownloadPdf = async () => {
+        if (isProcessingPdf) return;
+        setIsProcessingPdf(true);
+        setModalMessage("Preparing PDF for download...");
+        setModalType("loading");
+
+        try {
+            const pdfBlob = await generatePdfBlobFromCurrentView();
+            if (pdfBlob) {
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${estimateData.clientName}_Quotation_${estimateData._id}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setModalMessage("PDF downloaded successfully!");
+                setModalType("success");
+            }
+        } catch (error) {
+            console.error("Error during download process:", error);
+            setModalMessage(`Failed to download: ${error.message}`);
+            setModalType("error");
+        } finally {
+            setIsProcessingPdf(false);
+            if (modalType === "success" || modalType === "error" || modalType === "info") {
+                setTimeout(() => setModalMessage(""), 3000);
+            }
+        }
+    };
+
+    const handleShare = async () => {
+        if (isProcessingPdf) return;
+        setIsProcessingPdf(true);
+        setModalMessage("Preparing estimate for sharing...");
+        setModalType("loading");
+
+        try {
+            const pdfBlob = await generatePdfBlobFromCurrentView();
+            if (!pdfBlob) {
+                return;
+            }
+
+            // Upload PDF to S3 via Backend
+            const pdfUrl = await uploadPdfToS3Backend(
+                pdfBlob,
+                estimateData._id,
+                estimateData.clientName,
+                "Quotation",
+                userData.firebaseUID, // Use userData.firebaseUID directly here
+                setModalMessage,
+                setModalType
+            );
+            if (!pdfUrl) {
+                return;
+            }
+
+            // Update Estimate Model in MongoDB via Backend
+            const dbUpdateSuccess = await updateEstimateInDb(
+                estimateData._id,
+                pdfUrl,
+                userData.firebaseUID, // Use userData.firebaseUID directly here
+                setModalMessage,
+                setModalType
+            );
+            if (!dbUpdateSuccess) {
+                return;
+            }
+
+            const shareTitle = `Quotation from ${studioDetails.name}`;
+            const whatsappMessage = `Hi ${estimateData.clientName},\n\nHere's your estimate from ${studioDetails.name}:\n${pdfUrl}\n\nQuotation ID: ${estimateData._id}\n\nLooking forward to working with you!`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: shareTitle,
+                        text: whatsappMessage,
+                        url: pdfUrl,
+                    });
+                    console.log('Content shared successfully via Web Share API');
+                    setModalMessage("Quotation shared successfully ✅");
+                    setModalType("success");
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log('Web Share API cancelled by user.');
+                        setModalMessage("Sharing cancelled.");
+                        setModalType("info");
+                    } else {
+                        console.error('Error sharing via Web Share API:', error);
+                        setModalMessage("Failed to share via Web Share API. Opening WhatsApp directly.");
+                        setModalType("error");
+                        if (estimateData.phoneNumber) {
+                            window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+                        }
+                    }
+                }
+            } else {
+                setModalMessage("Web Share API not supported. Opening WhatsApp directly.");
+                setModalType("info");
+                if (estimateData.phoneNumber) {
+                    window.open(`https://wa.me/${estimateData.phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+                }
+            }
+
+        } catch (error) {
+            console.error("Error during share process:", error);
+            setModalMessage(`Failed to share estimate: ${error.message}`);
+            setModalType("error");
+        } finally {
+            setIsProcessingPdf(false);
+            if (modalType === "success" || modalType === "error" || modalType === "info") {
+                setTimeout(() => setModalMessage(""), 3000);
+            }
+        }
+    };
+
+    const handleGoBack = () => {
+        if (onGoBack) {
+            onGoBack();
+        } else {
+            window.history.back();
+        }
+    };
+
+    // Loading/Feedback Modal Component
+    const LoadingModal = ({ message, type }) => {
+        if (!message) return null;
+
+        let icon;
+        let textColor;
+        switch (type) {
+            case 'loading':
+                icon = <FaSpinner className="animate-spin text-4xl" />;
+                textColor = "text-blue-500";
+                break;
+            case 'success':
+                icon = <FaCheckCircle className="text-4xl" />;
+                textColor = "text-green-500";
+                break;
+            case 'error':
+                icon = <FaTimesCircle className="text-4xl" />;
+                textColor = "text-red-500";
+                break;
+            case 'info':
+                icon = <FaInfoCircle className="text-4xl" />;
+                textColor = "text-gray-500";
+                break;
+            default:
+                icon = null;
+                textColor = "text-gray-700";
+        }
+
+        return (
+            <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center max-w-sm text-center">
+                    {icon && <div className={`mb-4 ${textColor}`}>{icon}</div>}
+                    <p className="text-lg font-semibold text-gray-800">{message}</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Scan for booking and details</p>
+            </div>
+        );
+    };
+
+    if (userLoading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-gray-600 text-lg">Loading user data...</div>
+            </div>
+        );
+    }
+    // Added a check for userData existence after loading to prevent issues if it's still null/undefined
+    if (!userData) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-red-600 text-lg">User data not available. Please try again.</div>
+            </div>
+        );
+    }
+
+    // Moved firebaseUID declaration after userData check
+    const firebaseUID = userData.firebaseUID;
+
+    // Determine terms and conditions for display
+    const termsToDisplay = (studioDetails.policies && typeof studioDetails.policies === 'string' && studioDetails.policies.trim() !== '')
+        ? studioDetails.policies.split('\n').map(term => term.trim()).filter(term => term !== '')
+        : estimateData.termsAndConditions;
+
+    return (
+        <div className="min-h-screen bg-pink-100 p-4 flex flex-col items-center">
+            {isProcessingPdf && <LoadingModal message={modalMessage} type={modalType} />}
+
+            {/* Top Buttons Container - Excluded from PDF print */}
+            <div className="w-full max-w-2xl flex justify-between items-center mb-4 no-print p-2">
+                <button
+                    onClick={handleGoBack}
+                    className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center text-gray-700"
+                    aria-label="Go back"
+                >
+                    <FaArrowLeft size={20} />
+                </button>
+                <div className="flex space-x-3">
+                    <button
+                        onClick={handleShare}
+                        className="p-2 px-4 rounded-full bg-blue-500 hover:bg-blue-600 transition-colors text-white flex items-center justify-center text-sm"
+                        aria-label="Share estimate"
+                        disabled={isProcessingPdf}
+                    >
+                        <FaShareAlt className="mr-2" size={16} />
+                        {isProcessingPdf && modalType === 'loading' ? " Sharing..." : " Share"}
+                    </button>
+                    <button
+                        onClick={handleDownloadPdf}
+                        className="p-2 px-4 rounded-full bg-green-500 hover:bg-green-600 transition-colors text-white flex items-center justify-center text-sm"
+                        aria-label="Download PDF"
+                        disabled={isProcessingPdf}
+                    >
+                        <FaDownload className="mr-2" size={16} />
+                        {isProcessingPdf && modalType === 'loading' ? " Generating..." : " Download PDF"}
+                    </button>
+                </div>
+            </div>
+
+            {/* Main content container for preview and PDF generation */}
+            <div
+                className="mx-auto bg-white shadow-lg relative overflow-hidden"
+                style={{
+                    width: '210mm', // Fixed A4 width for display on all devices
+                    minHeight: '297mm', // Ensure at least one A4 height for consistent preview
+                    boxSizing: 'border-box', // Include padding in the width/height calculation
+                    ...captureStyles // Apply dynamic styles for PDF capture
+                }}
+            >
+                <div ref={printRef} className="p-8 print:p-8">
+                    {/* Decorative elements - adjust positioning/sizing as needed */}
+                    <div className="absolute top-0 left-0 -translate-x-6 -translate-y-6">
+                        <div className="w-24 h-24 bg-orange-400 transform rotate-45"></div>
+                        <div className="absolute top-4 left-4 w-16 h-1 bg-white transform rotate-45"></div>
+                        <div className="absolute top-6 left-2 w-16 h-1 bg-white transform rotate-45"></div>
+                        <div className="absolute top-8 left-0 w-16 h-1 bg-white transform rotate-45"></div>
+                    </div>
+
+                    {/* Photography decorative elements */}
+                    <div className="absolute top-4 right-4 opacity-10 z-0">
+                        <svg className="w-16 h-16 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/>
+                        </svg>
+                    </div>
+
+                    {/* Flash/burst decorative element */}
+                    <div className="absolute top-20 right-8 opacity-20 z-0">
+                        <div className="relative">
+                            <div className="w-3 h-8 bg-yellow-300 transform rotate-12"></div>
+                            <div className="w-3 h-8 bg-yellow-300 transform -rotate-12 absolute top-0"></div>
+                            <div className="w-8 h-3 bg-yellow-300 transform rotate-45 absolute top-2 -left-2"></div>
+                            <div className="w-8 h-3 bg-yellow-300 transform -rotate-45 absolute top-2 -left-2"></div>
+                        </div>
+                    </div>
+
+                    {/* Header */}
+                    <div className="flex justify-between items-start p-0 pb-4 relative z-10">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                {/* Studio Logo/Icon */}
+                                <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                                    {studioDetails.logoUrl ? (
+                                        <img src={studioDetails.logoUrl} alt="Studio Logo" className="w-full h-full object-cover rounded-lg" />
+                                    ) : (
+                                        <FaCamera className="w-8 h-8 text-white" />
+                                    )}
+                                </div>
+                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <div className="w-4 h-4 bg-white rounded-full"></div>
+                                </div>
+                            </div>
+                            <div className="text-gray-700 font-semibold text-sm flex items-center gap-2">
+                                📸 {studioDetails.brandName || studioDetails.name}
+                            </div>
+                            <div className="text-blue-600 text-2xl font-bold">QUOTATION</div>
+                            <div className="text-orange-500 font-bold"># {estimateData._id}</div>
+                        </div>
+                        <div className="text-right text-sm text-gray-600">
+                            <div className="font-semibold mb-1">QUOTATION DATE:</div>
+                            <div>{formatDate(estimateData.estimateDate)}</div>
+                            <div className="font-semibold mb-1 mt-2">DUE DATE:</div>
+                            <div>{formatDate(estimateData.dueDate)}</div>
+                        </div>
+                    </div>
+
+                    {/* Billing Information */}
+                    <div className="px-0 pb-4 relative z-10">
+                        <div className="bg-blue-600 text-white p-3 rounded">
+                            <div className="font-semibold mb-1">BILLING TO:</div>
+                            <div className="text-sm">{estimateData.clientName}</div>
+                            {estimateData.location && <div className="text-xs">{estimateData.location}</div>}
+                        </div>
+                    </div>
+
+                    {/* Quotation Items Table */}
+                    <div className="px-0 pb-4 relative z-10">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b-2 border-gray-200">
+                                    <th className="text-left py-2 text-sm font-semibold text-gray-700">ITEM NAME</th>
+                                    <th className="text-center py-2 text-sm font-semibold text-gray-700">PRICE</th>
+                                    <th className="text-center py-2 text-sm font-semibold text-gray-700">QTY</th>
+                                    <th className="text-right py-2 text-sm font-semibold text-gray-700">TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {estimateData.items.length > 0 ? (
+                                    estimateData.items.map((item, index) => (
+                                        <tr key={index} className="border-b border-gray-100">
+                                            <td className="py-3 pr-4 text-xs text-gray-600">{item.name}</td>
+                                            <td className="py-3 text-center text-xs text-gray-700">{formatCurrency(item.price)}</td>
+                                            <td className="py-3 text-center text-xs text-gray-700">{item.qty}</td>
+                                            <td className="py-3 text-right text-xs text-gray-700">{formatCurrency(item.total)}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td className="py-3 pr-4 text-xs text-gray-600" colSpan="4">No items listed</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Payment Summary */}
+                    <div className="px-0 pb-4 relative z-10">
+                        <div className="text-orange-500 font-bold mb-2">Payment Summary</div> {/* Changed from Payment Method */}
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-gray-600">Subtotal:</span>
+                            <span className="text-sm font-semibold">{formatCurrency(calculatedSubtotal)}</span>
+                        </div>
+                        {displayDiscountAmount > 0 && (
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-600">Discount:</span>
+                                <span className="text-sm font-semibold">-{formatCurrency(displayDiscountAmount)}</span>
+                            </div>
+                        )}
+                        {estimateData.tax && (estimateData.tax.percentage > 0 || estimateData.tax.amount > 0) && (
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-600">Tax {estimateData.tax.percentage > 0 ? `(${estimateData.tax.percentage}%)` : ''}:</span>
+                                <span className="text-sm font-semibold">{formatCurrency(actualTaxAmount)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center mt-4 border-t-2 border-gray-200 pt-2">
+                            <div className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-semibold flex items-center gap-1">
+                                <FaCreditCard /> {estimateData.paymentMethod}
+                            </div>
+                            <span className="text-lg font-bold">TOTAL: {formatCurrency(finalNetTotal)}</span>
+                        </div>
+                    </div>
+
+                    {/* Notes */}
+                    {estimateData.notes && estimateData.notes.trim() !== '' && (
+                        <div className="px-0 pb-4 relative z-10">
+                            <div className="text-orange-500 font-bold mb-2">Notes</div>
+                            <p className="text-xs text-gray-600">{estimateData.notes}</p>
+                        </div>
+                    )}
+
+
+                    {/* Terms and Conditions */}
+                    <div className="px-0 pb-6 relative z-10">
+                        <div className="text-orange-500 font-bold mb-2">Terms and Conditions</div>
+                        <ul className="text-xs text-gray-600 space-y-1">
+                            {termsToDisplay.length > 0 ? (
+                                termsToDisplay.map((term, index) => (
+                                    <li key={index} className="flex items-start">
+                                        <span className="text-orange-500 mr-2">
+                                            {index === 0 ? '📸' : index === 1 ? '🎯' : '⚡'}
+                                        </span>
+                                        {term}
+                                    </li>
+                                ))
+                            ) : (
+                                <li>No specific terms and conditions provided.</li>
+                            )}
+                        </ul>
+                    </div>
+
+                    {/* Footer / Contact Information */}
+                    <div className="px-0 pt-4 border-t border-gray-200 relative z-10 flex justify-between items-end">
+                        <div className="text-xs text-gray-600 space-y-1">
+                            {studioDetails.phone && (
+                                <div className="flex items-center gap-2">
+                                    <FaPhone className="text-orange-500" />
+                                    <span>{studioDetails.phone}</span>
+                                </div>
+                            )}
+                            {studioDetails.email && (
+                                <div className="flex items-center gap-2">
+                                    <FaEnvelope className="text-orange-500" />
+                                    <span>{studioDetails.email}</span>
+                                </div>
+                            )}
+                            {studioDetails.website && (
+                                <div className="flex items-center gap-2">
+                                    <FaGlobe className="text-orange-500" />
+                                    <span>{studioDetails.website}</span>
+                                </div>
+                            )}
+                            {studioDetails.address && (studioDetails.address.d_address || studioDetails.address.city) && (
+                                <div className="flex items-start gap-2">
+                                    <svg className="h-4 w-4 text-orange-500 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 0C7.8 0 4.4 3.4 4.4 7.6c0 4.2 7.6 14.4 7.6 14.4s7.6-10.2 7.6-14.4C19.6 3.4 16.2 0 12 0zm0 10.4c-1.5 0-2.8-1.3-2.8-2.8s1.3-2.8 2.8-2.8 2.8 1.3 2.8 2.8-1.3 2.8-2.8 2.8z"/>
+                                    </svg>
+                                    <span>
+                                        {studioDetails.address.d_address && <div>{studioDetails.address.d_address}</div>}
+                                        {studioDetails.address.city && <div>{studioDetails.address.city}, {studioDetails.address.state} {studioDetails.address.pincode}</div>}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="text-right text-xs text-gray-700">
+                            Thank you for your business!
+                        </div>
+                    </div>
+
+                    {/* Bottom Decorative elements */}
+                    <div className="absolute bottom-0 right-0 translate-x-6 translate-y-6">
+                        <div className="w-24 h-24 bg-blue-600 transform -rotate-45"></div>
+                        <div className="absolute bottom-4 right-4 w-16 h-1 bg-white transform -rotate-45"></div>
+                        <div className="absolute bottom-6 right-2 w-16 h-1 bg-white transform -rotate-45"></div>
+                        <div className="absolute bottom-8 right-0 w-16 h-1 bg-white transform -rotate-45"></div>
+                    </div>
+                </div>
             </div>
         </div>
-      </div>
-
-
-      {/* Footer */}
-      <div className="text-center mt-10 pt-4 border-t border-gray-300 text-gray-500 text-sm">
-        <p className="mb-1">Thank you for choosing {currentStudioData.studioName}!</p>
-        <p>Generated on: {formatDate(new Date())}</p>
-        <p className="mt-1">© {new Date().getFullYear()} {currentStudioData.studioName}. All rights reserved.</p>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ThemeModern;

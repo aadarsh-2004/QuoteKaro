@@ -1,10 +1,15 @@
 import React from "react";
 import styled from "styled-components";
-
-const CreditsBtn = () => {
+import {  useNavigate } from "react-router-dom";
+const ChooseTemplateBtn = () => {
+  const navigate = useNavigate(); 
+  const handleGoToPreferences = () => {
+    navigate("/settings/preferences"); // Navigate to the /preference route
+  };
   return (
     <StyledWrapper>
-      <button type="button" className="button">
+      <button onClick={handleGoToPreferences} type="button" className="button">
+        
         <span className="fold" />
         <div className="points_wrapper">
           <i className="point" />
@@ -19,19 +24,8 @@ const CreditsBtn = () => {
           <i className="point" />
         </div>
         <span className="inner">
-          <svg
-            className="icon"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2.5"
-          >
-            <polyline points="13.18 1.37 13.18 9.64 21.45 9.64 10.82 22.63 10.82 14.36 2.55 14.36 13.18 1.37" />
-          </svg>
-          Credits
+          
+          Choose Template
         </span>
       </button>
     </StyledWrapper>
@@ -258,4 +252,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default CreditsBtn;
+export default ChooseTemplateBtn;

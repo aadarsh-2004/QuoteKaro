@@ -250,9 +250,9 @@ const Sidebar = () => {
                       {settingsSubItems.map((subItem) => {
                         const SubIcon = subItem.icon;
                         return (
-                          <a
+                          <Link
                             key={subItem.id}
-                            href={subItem.path}
+                            to={subItem.path}
                             className={`w-full flex items-center gap-2 p-2 rounded-lg transition-all duration-200 text-sm ${
                               isSubItemActive(subItem.path)
                                 ? "bg-purple-50 text-purple-600 font-medium"
@@ -267,7 +267,7 @@ const Sidebar = () => {
                               }`}
                             />
                             {subItem.label}
-                          </a>
+                          </Link>
                         );
                       })}
                     </div>
@@ -285,9 +285,9 @@ const Sidebar = () => {
                       {settingsSubItems.map((subItem) => {
                         const SubIcon = subItem.icon;
                         return (
-                          <a
+                          <Link
                             key={subItem.id}
-                            href={subItem.path}
+                            to={subItem.path}
                             className={`flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
                               isSubItemActive(subItem.path)
                                 ? "bg-blue-50 text-blue-600"
@@ -297,7 +297,7 @@ const Sidebar = () => {
                           >
                             <SubIcon className="w-4 h-4" />
                             <span>{subItem.label}</span>
-                          </a>
+                          </Link>
                         );
                       })}
                     </div>
@@ -308,9 +308,9 @@ const Sidebar = () => {
 
             // Default menu items
             return (
-              <a
+              <Link
                 key={item.id}
-                href={item.path}
+                to={item.path}
                 className={`w-full flex items-center gap-3 p-4 mb-2 rounded-xl transition-all duration-200 ${
                   isActive
                     ? "bg-purple-100 text-purple-500 border-2 border-purple-300"
@@ -324,7 +324,7 @@ const Sidebar = () => {
                     {item.label}
                   </span>
                 )}
-              </a>
+              </Link>
             );
           })}
         </nav>
@@ -392,9 +392,9 @@ const Sidebar = () => {
             const isActive = window.location.pathname === item.path;
 
             return (
-              <a
+              <Link
                 key={item.id}
-                href={item.path}
+                to={item.path}
                 className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 ${
                   isActive
                     ? "bg-purple-100 text-purple-500 border border-purple-300"
@@ -402,7 +402,7 @@ const Sidebar = () => {
                 }`}
               >
                 <Icon size={20} />
-              </a>
+              </Link>
             );
           })}
 
@@ -423,8 +423,8 @@ const Sidebar = () => {
             {mobileSettingsOpen && (
               <div className="absolute right-0  mb-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
                 <div className="p-2">
-                  <a
-                    href="/settings"
+                  <Link
+                    to="/settings"
                     onClick={() => setMobileSettingsOpen(false)}
                     className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left ${
                       window.location.pathname === "/settings"
@@ -435,15 +435,15 @@ const Sidebar = () => {
                     <Settings size={16} />
                     <span className="text-sm font-medium" >All Settings</span>
                     
-                  </a>
+                  </Link>
 
                   <div className="border-t border-gray-100 my-2"></div>
                   
 
                   {settingsSubItems.map((subItem) => (
-                    <a
+                    <Link
                       key={subItem.id}
-                      href={subItem.path}
+                      to={subItem.path}
                       onClick={() => setMobileSettingsOpen(false)}
                       className={`w-full flex items-center gap-3 p-2.5 rounded-lg transition-all duration-200 text-left ${
                         isSubItemActive(subItem.path)
@@ -459,7 +459,7 @@ const Sidebar = () => {
                         }`}
                       />
                       <span className="text-sm">{subItem.label}</span>
-                    </a>
+                    </Link>
                     
                   ))}
                   <button
