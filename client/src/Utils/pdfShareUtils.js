@@ -20,9 +20,8 @@ export const uploadPdfToS3Backend = async (pdfBlob, estimateId, clientName, func
         return null;
     }
 
-    // Generate a unique filename for S3. Using the estimateId ensures uniqueness per estimate.
-    // The replace() cleans up any characters not suitable for S3 keys.
-    const fileName = `${functionName}_${clientName}_${estimateId}.pdf`.replace(/[^a-zA-Z0-9_.\-]/g, '_');
+    
+    const fileName = `${estimateId}.pdf`;
     const contentType = 'application/pdf'; // Essential for S3 to handle the file correctly
 
     setModalMessage("Requesting secure upload link...");

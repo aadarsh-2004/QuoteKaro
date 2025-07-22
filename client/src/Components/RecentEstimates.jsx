@@ -104,6 +104,7 @@ function RecentEstimates() {
     setModalType("loading");
 
     const pdfUrl = estimate.pdfUrl;
+    console.log("PDF URL from estimate object:", pdfUrl);
     if (!pdfUrl) {
       setModalMessage("Error: PDF URL not found for this estimate. Please generate it first.");
       setModalType("error");
