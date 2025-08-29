@@ -38,13 +38,9 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@<EC2_IP> '
-                    docker pull $IMAGE_BACKEND
-                    docker pull $IMAGE_FRONTEND
-                    docker compose -f ~/QuoteKaro/docker-compose.yml up -d --build
-                    '
-                '''
+                sshagent (credentials: ['jenkins-ssh-key']) {
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@16.171.234.124 "docker pull quotekaro-backend && docker-compose up -d"'
+                }
             }
         }
     }
