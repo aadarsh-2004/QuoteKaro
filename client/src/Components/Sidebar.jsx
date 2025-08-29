@@ -16,12 +16,12 @@ import { LuNotebookPen } from "react-icons/lu";
 import { BsCreditCard } from "react-icons/bs";
 import { RiLogoutBoxLine } from "react-icons/ri";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { signOut , onAuthStateChanged } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
-import { useUser } from '../context/UserContext';
+import { useUser } from "../context/UserContext";
 const Sidebar = () => {
-  const { userData,logout } = useUser();
-  
+  const { userData, logout } = useUser();
+
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
@@ -102,8 +102,6 @@ const Sidebar = () => {
       label: "Security",
       path: "/forgot-password",
     },
-    
-    
   ];
 
   // Close dropdown when clicking outside
@@ -126,9 +124,9 @@ const Sidebar = () => {
       // Sign out from Firebase
       await signOut(auth);
       logout();
-      
+
       localStorage.removeItem("firebaseId");
-      
+
       navigate("/login");
     } catch (error) {
       console.error("Error during logout:", error);
@@ -136,7 +134,7 @@ const Sidebar = () => {
       setIsLoggingOut(false);
     }
   };
-   useEffect(() => {
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
     });
@@ -144,30 +142,25 @@ const Sidebar = () => {
     return () => unsubscribe();
   }, []);
 
+  if (!userData) return null;
 
-   if(!userData  ) return null;
-
-   
   const getUserInfo = () => {
     if (firebaseUser) {
       return {
-        name: firebaseUser.displayName || 'User',
-        email: firebaseUser.email || '',
-        avatar: firebaseUser.photoURL
+        name: firebaseUser.displayName || "User",
+        email: firebaseUser.email || "",
+        avatar: firebaseUser.photoURL,
       };
     }
     return {
-      name: 'User',
-      email: '',
-      avatar: null
+      name: "User",
+      email: "",
+      avatar: null,
     };
   };
 
-  const userInfo =  getUserInfo();
+  const userInfo = getUserInfo();
   // console.log(userInfo)
-
- 
-  
 
   const isSettingsActive = window.location.pathname.startsWith("/settings");
   const isSubItemActive = (path) => window.location.pathname === path;
@@ -185,8 +178,6 @@ const Sidebar = () => {
       setMobileSettingsOpen(!mobileSettingsOpen);
     }
   };
-
- 
 
   return (
     <div className="flex md:flex-row flex-col md:h-screen">
@@ -343,9 +334,7 @@ const Sidebar = () => {
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <div >
-                      {userInfo.name.charAt(0).toUpperCase()}
-                    </div>
+                    <div>{userInfo.name.charAt(0).toUpperCase()}</div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -433,12 +422,10 @@ const Sidebar = () => {
                     }`}
                   >
                     <Settings size={16} />
-                    <span className="text-sm font-medium" >All Settings</span>
-                    
+                    <span className="text-sm font-medium">All Settings</span>
                   </Link>
 
                   <div className="border-t border-gray-100 my-2"></div>
-                  
 
                   {settingsSubItems.map((subItem) => (
                     <Link
@@ -460,29 +447,27 @@ const Sidebar = () => {
                       />
                       <span className="text-sm">{subItem.label}</span>
                     </Link>
-                    
                   ))}
                   <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed ${
-              !isOpen ? "justify-center" : ""
-            }`}
-            title={!isOpen ? "Logout" : ""}
-          >
-            {isLoggingOut ? (
-              <div className="w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin flex-shrink-0" />
-            ) : (
-              <RiLogoutBoxLine size={20} className="flex-shrink-0" />
-            )}
-            {isOpen && (
-              <span className="font-medium text-sm whitespace-nowrap">
-                {isLoggingOut ? "Logging out..." : "Logout"}
-              </span>
-            )}
-          </button>
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      !isOpen ? "justify-center" : ""
+                    }`}
+                    title={!isOpen ? "Logout" : ""}
+                  >
+                    {isLoggingOut ? (
+                      <div className="w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin flex-shrink-0" />
+                    ) : (
+                      <RiLogoutBoxLine size={20} className="flex-shrink-0" />
+                    )}
+                    {isOpen && (
+                      <span className="font-medium text-sm whitespace-nowrap">
+                        {isLoggingOut ? "Logging out..." : "Logout"}
+                      </span>
+                    )}
+                  </button>
                 </div>
-                
               </div>
             )}
           </div>

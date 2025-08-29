@@ -5,10 +5,10 @@ const { connect } = require('mongoose');
 const connectionDB = require('./config/db')
 
 // initialization
-dotenv.config()
+dotenv.config();
 const app = express();
 
-const allowedOrigins = ['https://www.quotekaro.in','https://adminquotekaro.vercel.app', 'http://localhost:5173' ,'https://quotekaro.in'];
+const allowedOrigins = ['https://www.quotekaro.in','https://adminquotekaro.vercel.app', 'http://localhost:5173','http://localhost:3000' ,'https://quotekaro.in'];
 const corsOptions = {
   origin: function (origin, callback) {
     // allow requests with no origin (like mobile apps or curl requests)

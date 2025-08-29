@@ -479,7 +479,9 @@ export default function Profile() {
   // Main render
   return (
     <div className="flex-1 p-0 m-0  overflow-y-auto">
+      
       {/* Header */}
+
       <header className=" bg-transparent text-black p-4 md:p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -571,7 +573,7 @@ export default function Profile() {
           </div>
 
           <div className="md:w-2/3">
-            <h2 className="text-xl md:text-3xl font-sans font-bold text-purple-500">
+            <h2 className="text-xl md:text-3xl font-sans font-bold bg-gradient-to-r from-purple-500 via-pink-400 to-pink-700 bg-clip-text text-transparent">
               {formData.studioName || "Your Studio Name"}
             </h2>
 

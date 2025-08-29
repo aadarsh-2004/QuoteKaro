@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: quote-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./server/.env
+    networks:
+      - quotekaro-net
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: quote-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    env_file:
+      - ./client/.env
+    networks:
+      - quotekaro-net
+
+networks:
+  quotekaro-net:
+    driver: bridge

@@ -6,7 +6,7 @@ function Dashboard() {
   return (
     <>
       <Layout>
-        <DashboardMainn></DashboardMainn>
+        <DashboardMainn />
       </Layout>
       <Footer />
     </>

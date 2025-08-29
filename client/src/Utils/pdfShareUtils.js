@@ -33,11 +33,7 @@ export const uploadPdfToS3Backend = async (pdfBlob, estimateId, clientName, func
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // IMPORTANT: If your backend's presigned URL endpoint requires authentication
-                // (e.g., Firebase ID Token via Authorization header), include it here.
-                // For example: 'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
-                // Based on your backend, you're passing firebaseUID in the body, which is fine,
-                // but consider a proper Authorization header if security is a higher concern.
+                
             },
             body: JSON.stringify({
                 fileName: fileName,
@@ -62,10 +58,9 @@ export const uploadPdfToS3Backend = async (pdfBlob, estimateId, clientName, func
 
         // --- Step 2: Upload the PDF Blob directly to S3 using the presigned URL ---
         const s3UploadResponse = await fetch(presignedUrl, {
-            method: 'PUT', // Use PUT method for direct S3 upload
+            method: 'PUT',
             headers: {
-                'Content-Type': 'application/pdf', // CRUCIAL: Must match the Content-Type requested when generating the presigned URL
-                // Do NOT include 'Access-Control-Allow-Origin' here. The browser handles CORS for direct S3 upload.
+                'Content-Type': 'application/pdf', 
             },
             body: pdfBlob, // Send the raw Blob directly. No JSON.stringify.
         });
@@ -115,13 +110,12 @@ export const updateEstimateInDb = async (estimateId, pdfUrl, firebaseUID, setMod
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                // IMPORTANT: If your backend's update endpoint requires authorization, include it here.
-                // 'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`,
+               
                 'firebaseUID': firebaseUID, // Pass firebaseUID for backend authorization
             },
             body: JSON.stringify({
                 pdfUrl: pdfUrl,
-                status: 'sent', // Always set status to 'sent' when sharing
+                status: 'sent', 
                 firebaseUID: firebaseUID, // Pass firebaseUID for backend to verify ownership
             }),
         });

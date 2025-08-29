@@ -1,18 +1,21 @@
-import React from "react";
-import { Copy, Share2,Crown,Zap } from "lucide-react";
+import React from "react"; 
+import { Copy, Share2, Crown, Zap } from "lucide-react";
 import WelcomeSection from "./WelcomeSection";
 import QuickStates from "./QuickStates";
 import RecentEstimates from "./RecentEstimates.jsx";
-// import CreditCard from "./CreditCard.jsx"; // Corrected import path for CreditCard
+// import CreditCard from "./CreditCard.jsx";
 import MiniCalender from "./MiniCalender.jsx";
 
-
-import { useUser } from '../context/UserContext';
+import { useUser } from "../context/UserContext";
 import { Link } from "react-router-dom";
 
 function DashboardMainn() {
-  const { userData , loading } = useUser();
-  if (!userData, loading) return null;
+  const { userData, loading } = useUser();
+
+  if (loading || !userData) {
+    return null;
+  }
+
   return (
     <div className="flex-1 p-4 md:p-8 overflow-y-auto">
       <WelcomeSection name="Dashboard" />
@@ -29,7 +32,6 @@ function DashboardMainn() {
         <div className="space-y-6">
           {/* <CreditCard /> */}
 
-          
           <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-white">
             <div className="flex items-center gap-3 mb-4">
               <Crown size={24} />
