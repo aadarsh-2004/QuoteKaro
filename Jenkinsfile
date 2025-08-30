@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')  // your DockerHub credentials in Jenkins
         EC2_USER = "ubuntu"
-        EC2_HOST = "16.171.234.124"  // Web EC2 IP
+        EC2_HOST = "13.51.48.57"  // Web EC2 IP
         APP_PATH = "/home/ubuntu/QuoteKaro"
         IMAGE_FRONTEND = "aadarshsoni/quotekaro-frontend:latest"
         IMAGE_BACKEND  = "aadarshsoni/quotekaro-backend:latest"
